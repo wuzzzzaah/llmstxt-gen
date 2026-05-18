@@ -1,6 +1,6 @@
 # llmstxt-gen
 
-> AST-aware `llms.txt` generator for Python and JavaScript/TypeScript codebases.
+> AST-aware `llms.txt` generator for Python, JavaScript/TypeScript, and Go codebases.
 
 [![PyPI version](https://img.shields.io/pypi/v/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
 [![Python versions](https://img.shields.io/pypi/pyversions/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
@@ -27,7 +27,7 @@ Requires Python 3.11 or newer. The PyPI distribution name is `llmstxt-gen`; the 
 
 ## Quick start
 
-From the root of any Python or JavaScript/TypeScript project:
+From the root of any Python, JavaScript/TypeScript, or Go project:
 
 ```sh
 llmstxt-gen generate
@@ -93,14 +93,14 @@ All options live in your `pyproject.toml` under `[tool.llmstxt_gen]`. Every key 
 | `version` | string | `""` | Project version |
 | `include` | list of strings | `[]` (all) | Paths to scan, relative to the repo root |
 | `exclude` | list of strings | `[]` | Additional patterns to skip, beyond `.gitignore` |
-| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx"]` | File extensions to consider |
+| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go"]` | File extensions to consider |
 | `output_dir` | string | `"."` | Where to write the output files |
 | `output_summary` | string | `"llms.txt"` | Filename for the summary file |
 | `output_full` | string | `"llms-full.txt"` | Filename for the full reference |
 | `include_private` | bool | `false` | Include private or non-exported symbols |
 | `max_tokens_summary` | int | `8000` | Token budget for `llms.txt` |
 | `max_tokens_full` | int | `32000` | Token budget for `llms-full.txt` |
-| `languages` | list of strings | `["python", "typescript"]` | Parsers to activate |
+| `languages` | list of strings | `["python", "typescript", "go"]` | Parsers to activate |
 
 Example:
 
@@ -177,6 +177,6 @@ MIT. See [LICENSE](LICENSE).
 ## Roadmap (not yet implemented)
 
 - Rust port for large monorepos
-- Parser support for Go, Ruby, and Java
+- Parser support for Ruby and Java
 - Optional semantic pruning via a local model
 - A hosted GitHub App for zero-config setup

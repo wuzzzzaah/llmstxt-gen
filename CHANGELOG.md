@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Initial release of llmstxt-gen.
 - Python parser backed by tree-sitter.
 - JavaScript and TypeScript parser backed by tree-sitter.
+- Go parser backed by tree-sitter.
 - File-system walker that honors `.gitignore` and user-configured exclude patterns.
 - Token-aware pruner with five staged pruning levels.
 - Renderer producing spec-compliant `llms.txt` and `llms-full.txt` Markdown.

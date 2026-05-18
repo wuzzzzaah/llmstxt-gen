@@ -11,8 +11,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-DEFAULT_EXTENSIONS: tuple[str, ...] = (".py", ".js", ".jsx", ".ts", ".tsx")
-DEFAULT_LANGUAGES: tuple[str, ...] = ("python", "typescript")
+DEFAULT_EXTENSIONS: tuple[str, ...] = (".py", ".js", ".jsx", ".ts", ".tsx", ".go")
+DEFAULT_LANGUAGES: tuple[str, ...] = ("python", "typescript", "go")
 
 
 @dataclass

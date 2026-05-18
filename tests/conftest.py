@@ -13,3 +13,8 @@ def sample_python_root() -> Path:
 @pytest.fixture
 def sample_typescript_root() -> Path:
     return FIXTURES / "sample_typescript"
+
+
+@pytest.fixture
+def sample_go_root() -> Path:
+    return FIXTURES / "sample_go"
