@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- Rust parser backed by tree-sitter-rust. Extracts module doc comments (`//!`, `///`), public functions (including generics and where clauses), structs and enums (with fields and variants), traits (including method signatures), impl blocks (attaching methods and constants to target types), type aliases, and constants/statics.
+
 ## [0.2.0] - 2026-05-18
 
 ### Added
