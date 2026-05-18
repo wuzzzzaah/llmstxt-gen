@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install codexa
-        run: pip install codexa
+        run: pip install llmstxt-gen
       - name: Generate
         run: codexa generate
       - name: Commit
@@ -74,7 +74,7 @@ update-llms-txt:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   script:
-    - pip install codexa
+    - pip install llmstxt-gen
     - codexa generate
     - git config user.email "ci@example.com"
     - git config user.name "ci"

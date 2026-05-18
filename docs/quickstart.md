@@ -5,8 +5,10 @@ This guide takes you from zero to a generated `llms.txt` in under a minute.
 ## Install
 
 ```sh
-pip install codexa
+pip install llmstxt-gen
 ```
+
+The PyPI distribution is `llmstxt-gen`; the CLI it installs is `codexa`.
 
 You need Python 3.11 or newer. No other system dependencies are required: tree-sitter ships precompiled wheels for every supported platform.
 

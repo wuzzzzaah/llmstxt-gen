@@ -2,8 +2,8 @@
 
 > AST-aware `llms.txt` generator for Python and JavaScript/TypeScript codebases.
 
-[![PyPI version](https://img.shields.io/pypi/v/codexa.svg)](https://pypi.org/project/codexa/)
-[![Python versions](https://img.shields.io/pypi/pyversions/codexa.svg)](https://pypi.org/project/codexa/)
+[![PyPI version](https://img.shields.io/pypi/v/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
+[![Python versions](https://img.shields.io/pypi/pyversions/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/wuzzzzaah/codexa/actions/workflows/ci.yml/badge.svg)](https://github.com/wuzzzzaah/codexa/actions/workflows/ci.yml)
 
@@ -20,10 +20,10 @@ No scraping. No cloud calls. No framework lock-in.
 ## Installation
 
 ```sh
-pip install codexa
+pip install llmstxt-gen
 ```
 
-Requires Python 3.11 or newer.
+Requires Python 3.11 or newer. The PyPI distribution name is `llmstxt-gen`; the installed CLI command and Python import name are both `codexa`.
 
 ## Quick start
 
@@ -146,7 +146,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install codexa
+      - run: pip install llmstxt-gen
       - run: codexa generate
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

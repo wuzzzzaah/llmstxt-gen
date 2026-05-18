@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "codexa"
+name = "llmstxt-gen"
 version = "0.1.0"
 description = "AST-aware llms.txt generator for Python and JavaScript/TypeScript codebases"
 readme = "README.md"
