@@ -5,7 +5,7 @@
 ## src/llmstxt_gen/__init__.py
 <a id="src-llmstxt-gen-init-py"></a>
 
-codexa: AST-aware llms.txt generator.
+llmstxt-gen: AST-aware llms.txt generator.
 
 Public API re-exports the most commonly used entry points so that users can
 build their own pipelines on top of the library.

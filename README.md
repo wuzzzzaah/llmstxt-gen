@@ -174,9 +174,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and pull requests are welcom
 
 MIT. See [LICENSE](LICENSE).
 
-## Roadmap (not yet implemented)
+## Roadmap
 
-- Rust port for large monorepos
-- Parser support for Ruby and Java
+Today: Python, JavaScript/TypeScript, Go.
+
+Next: Rust, Ruby, Java, C# — in that order. The full plan with rationale, scope, and contribution instructions lives in [docs/roadmap.md](docs/roadmap.md).
+
+Beyond language support, planned work:
+
 - Optional semantic pruning via a local model
 - A hosted GitHub App for zero-config setup
+- A Rust reimplementation of the core for very large monorepos

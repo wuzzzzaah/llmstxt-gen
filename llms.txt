@@ -2,7 +2,7 @@
 
 > AST-aware llms.txt generator
 
-__init__: codexa: AST-aware llms.
+__init__: llmstxt-gen: AST-aware llms.
 cli: Typer CLI for llmstxt-gen.
 config: Configuration loading for llmstxt-gen.
 __init__: Language parsers.
@@ -17,7 +17,7 @@ writer: Write rendered output to disk.
 
 ## Modules
 
-- [__init__](llms-full.txt#src-llmstxt-gen-init-py): codexa: AST-aware llms.
+- [__init__](llms-full.txt#src-llmstxt-gen-init-py): llmstxt-gen: AST-aware llms.
 - [cli](llms-full.txt#src-llmstxt-gen-cli-py): Typer CLI for llmstxt-gen.
 - [config](llms-full.txt#src-llmstxt-gen-config-py): Configuration loading for llmstxt-gen.
 - [__init__](llms-full.txt#src-llmstxt-gen-parsers-init-py): Language parsers.
