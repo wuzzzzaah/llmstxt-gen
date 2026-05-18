@@ -13,7 +13,7 @@ LLM coding agents work best when they have an accurate, up-to-date map of the co
 
 Most existing generators build that file by scraping a project's published docs site. Scrapers go stale the moment your code changes, they bring along marketing prose the agent does not need, and they cannot describe code that has not been documented yet. The result is an `llms.txt` that confidently lists deprecated APIs.
 
-`llmstxt-gen` takes a different approach. It reads your source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
+`llmstxt-gen` takes a different approach. It reads your Python, JavaScript/TypeScript, or Go source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
 
 No scraping. No cloud calls. No framework lock-in.
 

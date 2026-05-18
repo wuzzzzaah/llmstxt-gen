@@ -76,7 +76,7 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
             params.append(
                 ParsedParameter(
                     name=f"...{_text(name_node, source)}" if name_node else "...",
-                    type_hint=_text(type_node, source) if type_node else "",
+                    type_hint=f"...{_text(type_node, source)}" if type_node else "...",
                 )
             )
     return params
@@ -165,20 +165,18 @@ class GoParser(BaseParser):
                                 specs.append(spec)
 
                 for spec in specs:
-                        # const ( a, b = 1, 2 )
-                        # tree-sitter-go: const_spec has 'name' (identifiers) and 'type' and 'values'
-                        type_node = spec.child_by_field_name("type")
-                        type_hint = _text(type_node, source) if type_node else ""
+                    # const ( a, b = 1, 2 )
+                    # tree-sitter-go: const_spec has 'name' (identifiers) and 'type' and 'values'
+                    type_node = spec.child_by_field_name("type")
+                    type_hint = _text(type_node, source) if type_node else ""
 
-                        # In const_spec/var_spec, identifiers are just children usually,
-                        # but some might be field 'name'.
-                        names = [n for n in spec.named_children if n.type == "identifier"]
-                        for name_node in names:
-                            name = _text(name_node, source)
-                            if self.include_private or _is_exported(name):
-                                module.constants.append(
-                                    ParsedConstant(name=name, type_hint=type_hint)
-                                )
+                    # In const_spec/var_spec, identifiers are just children usually,
+                    # but some might be field 'name'.
+                    names = [n for n in spec.named_children if n.type == "identifier"]
+                    for name_node in names:
+                        name = _text(name_node, source)
+                        if self.include_private or _is_exported(name):
+                            module.constants.append(ParsedConstant(name=name, type_hint=type_hint))
 
         # Attach methods to classes
         for cls in module.classes:
@@ -235,6 +233,8 @@ class GoParser(BaseParser):
             docstring = _get_doc(node.parent, source)
 
         bases: list[str] = []
+        methods: list[ParsedFunction] = []
+
         if type_node:
             if type_node.type == "struct_type":
                 # field_declaration_list is often a child of struct_type, but not necessarily by field name 'fields'
@@ -259,18 +259,68 @@ class GoParser(BaseParser):
                             # If it doesn't have field_identifier, it's likely embedded
                             bases.append(_text(field, source))
             elif type_node.type == "interface_type":
-                methods = type_node.child_by_field_name("methods")
-                if methods:
-                    for method in methods.named_children:
-                        if method.type == "type_identifier": # Embedded interface
-                            bases.append(_text(method, source))
-                        # methods are handled via ParsedClass.methods if we want,
-                        # but llmstxt-gen seems to want them as methods.
-                        # Wait, interface methods in Go don't have a body.
+                # In tree-sitter-go, the methods/embedded types are named children of interface_type
+                for child in type_node.named_children:
+                    if child.type == "type_elem":
+                        tid = _find_type_identifier(child)
+                        if tid:
+                            bases.append(_text(tid, source))
+                    elif child.type in ("method_elem", "method_spec"):
+                        # Extract as a function
+                        fn_name_node = child.child_by_field_name("name")
+                        params_node = child.child_by_field_name("parameters")
+                        result_node = child.child_by_field_name("result")
+
+                        # Fallback for method_elem which might not have field names set up the same way
+                        if not fn_name_node:
+                            for c in child.named_children:
+                                if c.type == "field_identifier":
+                                    fn_name_node = c
+                                    break
+                        if not params_node:
+                            for c in child.named_children:
+                                if c.type == "parameter_list":
+                                    params_node = c
+                                    break
+                        if not result_node:
+                            # result is usually the last child if it's a type or parameter_list
+                            # but let's be careful.
+                            potential_result = (
+                                child.named_children[-1] if child.named_children else None
+                            )
+                            if (
+                                potential_result
+                                and potential_result.type
+                                in (
+                                    "type_identifier",
+                                    "parameter_list",
+                                    "qualified_type",
+                                    "pointer_type",
+                                    "array_type",
+                                    "map_type",
+                                )
+                                and potential_result != fn_name_node
+                                and potential_result != params_node
+                            ):
+                                result_node = potential_result
+
+                        fn_name = _text(fn_name_node, source) if fn_name_node else ""
+                        if self.include_private or _is_exported(fn_name):
+                            methods.append(
+                                ParsedFunction(
+                                    name=fn_name,
+                                    parameters=_parse_parameters(params_node, source),
+                                    return_type=_parse_result(result_node, source),
+                                    docstring=_get_doc(child, source),
+                                    line=child.start_point[0] + 1,
+                                    is_private=not _is_exported(fn_name),
+                                )
+                            )
 
         return ParsedClass(
             name=name,
             docstring=docstring,
             bases=bases,
+            methods=methods,
             line=node.start_point[0] + 1,
         )

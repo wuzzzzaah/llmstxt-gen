@@ -34,6 +34,15 @@ def test_go_parser_extracts_interfaces(sample_go_root: Path) -> None:
     cls = next(c for c in module.classes if c.name == "MyInterface")
     assert "sample interface" in cls.docstring
 
+
+def test_go_parser_extracts_interface_methods(sample_go_root: Path) -> None:
+    parser = GoParser()
+    module = parser.parse(_load(sample_go_root / "main.go"))
+    cls = next(c for c in module.classes if c.name == "MyInterface")
+    method_names = [m.name for m in cls.methods]
+    assert "DoSomething" in method_names
+
+
 def test_go_parser_extracts_constants_and_variables(sample_go_root: Path) -> None:
     parser = GoParser()
     module = parser.parse(_load(sample_go_root / "main.go"))
@@ -79,4 +88,4 @@ def test_go_parser_handles_variadic_parameters() -> None:
     module = parser.parse(sf)
     fn = module.functions[0]
     assert fn.parameters[0].name == "...args"
-    assert fn.parameters[0].type_hint == "string"
+    assert fn.parameters[0].type_hint == "...string"

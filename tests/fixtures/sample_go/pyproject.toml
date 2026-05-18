@@ -1,3 +1,0 @@
-[tool.llmstxt_gen]
-languages = ["go"]
-extensions = [".go"]
