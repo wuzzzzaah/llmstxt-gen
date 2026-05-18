@@ -1,11 +1,11 @@
-from codexa.parsers.base import (
+from llmstxt_gen.parsers.base import (
     ParsedClass,
     ParsedConstant,
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
 )
-from codexa.pruner import estimate_tokens, estimate_total_tokens, prune_modules
+from llmstxt_gen.pruner import estimate_tokens, estimate_total_tokens, prune_modules
 
 
 def _module(name: str = "m") -> ParsedModule:

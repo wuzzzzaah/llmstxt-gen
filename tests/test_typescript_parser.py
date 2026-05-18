@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from codexa.parsers.typescript import TypeScriptParser
-from codexa.walker import SourceFile
+from llmstxt_gen.parsers.typescript import TypeScriptParser
+from llmstxt_gen.walker import SourceFile
 
 
 def _load(path: Path) -> SourceFile:

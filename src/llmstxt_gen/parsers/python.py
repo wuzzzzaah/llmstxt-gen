@@ -12,7 +12,7 @@ from typing import Any
 import tree_sitter_python
 from tree_sitter import Language, Node, Parser
 
-from codexa.parsers.base import (
+from llmstxt_gen.parsers.base import (
     BaseParser,
     ParsedClass,
     ParsedConstant,
@@ -20,7 +20,7 @@ from codexa.parsers.base import (
     ParsedModule,
     ParsedParameter,
 )
-from codexa.walker import SourceFile
+from llmstxt_gen.walker import SourceFile
 
 _PY_LANGUAGE = Language(tree_sitter_python.language())
 

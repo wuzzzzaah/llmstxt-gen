@@ -4,17 +4,17 @@ Public API re-exports the most commonly used entry points so that users can
 build their own pipelines on top of the library.
 """
 
-from codexa.config import CodexaConfig, load_config
-from codexa.parsers.base import ParsedClass, ParsedFunction, ParsedModule, ParsedParameter
-from codexa.pruner import prune_modules
-from codexa.renderer import render_full, render_summary
-from codexa.walker import SourceFile, walk_repository
-from codexa.writer import write_outputs
+from llmstxt_gen.config import LlmsTxtConfig, load_config
+from llmstxt_gen.parsers.base import ParsedClass, ParsedFunction, ParsedModule, ParsedParameter
+from llmstxt_gen.pruner import prune_modules
+from llmstxt_gen.renderer import render_full, render_summary
+from llmstxt_gen.walker import SourceFile, walk_repository
+from llmstxt_gen.writer import write_outputs
 
 __version__ = "0.1.0"
 
 __all__ = [
-    "CodexaConfig",
+    "LlmsTxtConfig",
     "ParsedClass",
     "ParsedFunction",
     "ParsedModule",

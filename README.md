@@ -1,11 +1,11 @@
-# codexa
+# llmstxt-gen
 
 > AST-aware `llms.txt` generator for Python and JavaScript/TypeScript codebases.
 
 [![PyPI version](https://img.shields.io/pypi/v/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
 [![Python versions](https://img.shields.io/pypi/pyversions/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/wuzzzzaah/codexa/actions/workflows/ci.yml/badge.svg)](https://github.com/wuzzzzaah/codexa/actions/workflows/ci.yml)
+[![CI](https://github.com/wuzzzzaah/llmstxt-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/wuzzzzaah/llmstxt-gen/actions/workflows/ci.yml)
 
 ## What problem this solves
 
@@ -13,7 +13,7 @@ LLM coding agents work best when they have an accurate, up-to-date map of the co
 
 Most existing generators build that file by scraping a project's published docs site. Scrapers go stale the moment your code changes, they bring along marketing prose the agent does not need, and they cannot describe code that has not been documented yet. The result is an `llms.txt` that confidently lists deprecated APIs.
 
-`codexa` takes a different approach. It reads your source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
+`llmstxt-gen` takes a different approach. It reads your source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
 
 No scraping. No cloud calls. No framework lock-in.
 
@@ -23,14 +23,14 @@ No scraping. No cloud calls. No framework lock-in.
 pip install llmstxt-gen
 ```
 
-Requires Python 3.11 or newer. The PyPI distribution name is `llmstxt-gen`; the installed CLI command and Python import name are both `codexa`.
+Requires Python 3.11 or newer. The PyPI distribution name is `llmstxt-gen`; the installed CLI command and Python import name are both `llmstxt-gen`.
 
 ## Quick start
 
 From the root of any Python or JavaScript/TypeScript project:
 
 ```sh
-codexa generate
+llmstxt-gen generate
 ```
 
 You will get two files in the project root:
@@ -41,13 +41,13 @@ You will get two files in the project root:
 To preview without writing files:
 
 ```sh
-codexa generate --dry-run
+llmstxt-gen generate --dry-run
 ```
 
 To get a quick read on what would be included:
 
 ```sh
-codexa stats
+llmstxt-gen stats
 ```
 
 ## Example output
@@ -84,7 +84,7 @@ calc: Tiny calculator module.
 
 ## Configuration
 
-All options live in your `pyproject.toml` under `[tool.codexa]`. Every key is optional.
+All options live in your `pyproject.toml` under `[tool.llmstxt_gen]`. Every key is optional.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
@@ -105,7 +105,7 @@ All options live in your `pyproject.toml` under `[tool.codexa]`. Every key is op
 Example:
 
 ```toml
-[tool.codexa]
+[tool.llmstxt_gen]
 include = ["src/"]
 exclude = ["src/internal/"]
 include_private = false
@@ -120,9 +120,9 @@ max_tokens_summary = 6000
 repos:
   - repo: local
     hooks:
-      - id: codexa
-        name: codexa
-        entry: codexa generate
+      - id: llmstxt-gen
+        name: llmstxt-gen
+        entry: llmstxt-gen generate
         language: system
         pass_filenames: false
         always_run: true
@@ -147,7 +147,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install llmstxt-gen
-      - run: codexa generate
+      - run: llmstxt-gen generate
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: refresh llms.txt"
@@ -164,7 +164,7 @@ Scrapers like [llmstxt.org generators](https://llmstxt.org/) crawl a published d
 - They include navigation chrome, marketing copy, and rendered examples that bloat the agent's context window.
 - They cannot reliably recover type information, since rendered HTML is lossy.
 
-`codexa` reads the source. It will always reflect what is actually in the repository, and it produces output that maps one-to-one with the symbols an agent will end up calling.
+`llmstxt-gen` reads the source. It will always reflect what is actually in the repository, and it produces output that maps one-to-one with the symbols an agent will end up calling.
 
 ## Contributing
 

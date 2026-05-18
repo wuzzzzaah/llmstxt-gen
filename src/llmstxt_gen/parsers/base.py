@@ -2,7 +2,7 @@
 
 All language parsers produce instances of :class:`ParsedModule`. Downstream
 stages (pruner, renderer) work exclusively against these structures, which is
-what lets codexa stay language-agnostic.
+what lets llmstxt-gen stay language-agnostic.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from codexa.walker import SourceFile
+from llmstxt_gen.walker import SourceFile
 
 
 @dataclass

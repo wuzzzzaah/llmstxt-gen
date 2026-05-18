@@ -1,4 +1,4 @@
-"""Typer CLI for codexa."""
+"""Typer CLI for llmstxt-gen."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from typing import Annotated
 
 import typer
 
-from codexa.config import CodexaConfig, load_config
-from codexa.parsers import parser_for
-from codexa.parsers.base import ParsedModule
-from codexa.pruner import estimate_total_tokens, prune_modules
-from codexa.renderer import render_full, render_summary
-from codexa.walker import walk_repository
-from codexa.writer import write_outputs
+from llmstxt_gen.config import LlmsTxtConfig, load_config
+from llmstxt_gen.parsers import parser_for
+from llmstxt_gen.parsers.base import ParsedModule
+from llmstxt_gen.pruner import estimate_total_tokens, prune_modules
+from llmstxt_gen.renderer import render_full, render_summary
+from llmstxt_gen.walker import walk_repository
+from llmstxt_gen.writer import write_outputs
 
 app = typer.Typer(
     add_completion=False,
@@ -22,7 +22,7 @@ app = typer.Typer(
 )
 
 
-def _collect_modules(config: CodexaConfig, verbose: bool = False) -> list[ParsedModule]:
+def _collect_modules(config: LlmsTxtConfig, verbose: bool = False) -> list[ParsedModule]:
     modules: list[ParsedModule] = []
     root = config.root.resolve()
     for source_file in walk_repository(config):
@@ -153,7 +153,7 @@ def stats(
 
 
 def main() -> None:  # pragma: no cover
-    """Entry point used by ``python -m codexa``."""
+    """Entry point used by ``python -m llmstxt_gen``."""
     app()
 
 

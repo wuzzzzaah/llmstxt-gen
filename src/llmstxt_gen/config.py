@@ -1,6 +1,6 @@
-"""Configuration loading for codexa.
+"""Configuration loading for llmstxt-gen.
 
-Reads ``[tool.codexa]`` from a project's ``pyproject.toml``. Every option has
+Reads ``[tool.llmstxt_gen]`` from a project's ``pyproject.toml``. Every option has
 a sensible default so a project with no configuration still produces useful
 output.
 """
@@ -16,7 +16,7 @@ DEFAULT_LANGUAGES: tuple[str, ...] = ("python", "typescript")
 
 
 @dataclass
-class CodexaConfig:
+class LlmsTxtConfig:
     """Resolved configuration used by every stage of the pipeline."""
 
     name: str = ""
@@ -45,8 +45,8 @@ def find_pyproject(start: Path) -> Path | None:
     return None
 
 
-def load_config(root: Path, config_path: Path | None = None) -> CodexaConfig:
-    """Load a :class:`CodexaConfig` for the project rooted at ``root``.
+def load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig:
+    """Load a :class:`LlmsTxtConfig` for the project rooted at ``root``.
 
     If ``config_path`` is provided it is used directly. Otherwise the loader
     searches upward from ``root`` for a ``pyproject.toml``. A missing config
@@ -56,7 +56,7 @@ def load_config(root: Path, config_path: Path | None = None) -> CodexaConfig:
     root = root.resolve()
     pyproject = config_path if config_path is not None else find_pyproject(root)
 
-    cfg = CodexaConfig(name=root.name, root=root)
+    cfg = LlmsTxtConfig(name=root.name, root=root)
     if pyproject is None or not pyproject.is_file():
         return cfg
 
@@ -72,7 +72,7 @@ def load_config(root: Path, config_path: Path | None = None) -> CodexaConfig:
         if "name" in project_table and isinstance(project_table["name"], str):
             cfg.name = project_table["name"]
 
-    table = data.get("tool", {}).get("codexa", {})
+    table = data.get("tool", {}).get("llmstxt_gen", {})
     if not isinstance(table, dict):
         return cfg
 

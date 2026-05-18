@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from codexa.config import CodexaConfig
+from llmstxt_gen.config import LlmsTxtConfig
 
 
 def write_outputs(
-    config: CodexaConfig,
+    config: LlmsTxtConfig,
     summary: str,
     full: str | None,
 ) -> list[Path]:

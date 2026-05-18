@@ -1,10 +1,10 @@
-# codexa
+# llmstxt-gen
 
 > AST-aware llms.txt generator
 
 __init__: codexa: AST-aware llms.
-cli: Typer CLI for codexa.
-config: Configuration loading for codexa.
+cli: Typer CLI for llmstxt-gen.
+config: Configuration loading for llmstxt-gen.
 __init__: Language parsers.
 base: Abstract base parser and shared data models.
 python: Python parser backed by tree-sitter.
@@ -16,14 +16,14 @@ writer: Write rendered output to disk.
 
 ## Modules
 
-- [__init__](llms-full.txt#src-codexa-init-py): codexa: AST-aware llms.
-- [cli](llms-full.txt#src-codexa-cli-py): Typer CLI for codexa.
-- [config](llms-full.txt#src-codexa-config-py): Configuration loading for codexa.
-- [__init__](llms-full.txt#src-codexa-parsers-init-py): Language parsers.
-- [base](llms-full.txt#src-codexa-parsers-base-py): Abstract base parser and shared data models.
-- [python](llms-full.txt#src-codexa-parsers-python-py): Python parser backed by tree-sitter.
-- [typescript](llms-full.txt#src-codexa-parsers-typescript-py): JavaScript/TypeScript parser backed by tree-sitter.
-- [pruner](llms-full.txt#src-codexa-pruner-py): Token-aware pruning.
-- [renderer](llms-full.txt#src-codexa-renderer-py): Render parsed modules to llms.
-- [walker](llms-full.txt#src-codexa-walker-py): File system walker.
-- [writer](llms-full.txt#src-codexa-writer-py): Write rendered output to disk.
+- [__init__](llms-full.txt#src-llmstxt-gen-init-py): codexa: AST-aware llms.
+- [cli](llms-full.txt#src-llmstxt-gen-cli-py): Typer CLI for llmstxt-gen.
+- [config](llms-full.txt#src-llmstxt-gen-config-py): Configuration loading for llmstxt-gen.
+- [__init__](llms-full.txt#src-llmstxt-gen-parsers-init-py): Language parsers.
+- [base](llms-full.txt#src-llmstxt-gen-parsers-base-py): Abstract base parser and shared data models.
+- [python](llms-full.txt#src-llmstxt-gen-parsers-python-py): Python parser backed by tree-sitter.
+- [typescript](llms-full.txt#src-llmstxt-gen-parsers-typescript-py): JavaScript/TypeScript parser backed by tree-sitter.
+- [pruner](llms-full.txt#src-llmstxt-gen-pruner-py): Token-aware pruning.
+- [renderer](llms-full.txt#src-llmstxt-gen-renderer-py): Render parsed modules to llms.
+- [walker](llms-full.txt#src-llmstxt-gen-walker-py): File system walker.
+- [writer](llms-full.txt#src-llmstxt-gen-writer-py): Write rendered output to disk.

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pathspec
 
-from codexa.config import CodexaConfig
+from llmstxt_gen.config import LlmsTxtConfig
 
 EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".py": "python",
@@ -73,7 +73,7 @@ def _is_binary(path: Path) -> bool:
     return b"\x00" in chunk
 
 
-def walk_repository(config: CodexaConfig) -> Iterator[SourceFile]:
+def walk_repository(config: LlmsTxtConfig) -> Iterator[SourceFile]:
     """Yield :class:`SourceFile` objects for every supported file under ``config.root``.
 
     Files are skipped when they:

@@ -8,7 +8,7 @@ This guide takes you from zero to a generated `llms.txt` in under a minute.
 pip install llmstxt-gen
 ```
 
-The PyPI distribution is `llmstxt-gen`; the CLI it installs is `codexa`.
+The PyPI distribution is `llmstxt-gen`; the CLI it installs is `llmstxt-gen`.
 
 You need Python 3.11 or newer. No other system dependencies are required: tree-sitter ships precompiled wheels for every supported platform.
 
@@ -17,7 +17,7 @@ You need Python 3.11 or newer. No other system dependencies are required: tree-s
 From the root of any Python or TypeScript project:
 
 ```sh
-codexa generate
+llmstxt-gen generate
 ```
 
 You will see two new files in the project root:
@@ -28,7 +28,7 @@ You will see two new files in the project root:
 If you only want to see what would be produced without writing anything:
 
 ```sh
-codexa generate --dry-run
+llmstxt-gen generate --dry-run
 ```
 
 ## Configure what gets included
@@ -36,7 +36,7 @@ codexa generate --dry-run
 If your project layout puts source code under `src/` and you do not want test files included, add this to your `pyproject.toml`:
 
 ```toml
-[tool.codexa]
+[tool.llmstxt_gen]
 include = ["src/"]
 exclude = ["tests/"]
 ```
@@ -46,7 +46,7 @@ The full set of options is documented in [configuration.md](configuration.md).
 ## Get a quick sense of project size
 
 ```sh
-codexa stats
+llmstxt-gen stats
 ```
 
 This prints how many files were scanned, how many symbols were extracted, and the estimated token cost of the resulting document. It is useful for tuning `max_tokens_summary`.
@@ -54,11 +54,11 @@ This prints how many files were scanned, how many symbols were extracted, and th
 ## Validate an existing llms.txt
 
 ```sh
-codexa validate llms.txt
+llmstxt-gen validate llms.txt
 ```
 
 Exits with code zero on success and one when the file is missing or malformed.
 
 ## Next steps
 
-Wire `codexa generate` into your CI so the file never drifts. See [ci-integration.md](ci-integration.md).
+Wire `llmstxt-gen generate` into your CI so the file never drifts. See [ci-integration.md](ci-integration.md).

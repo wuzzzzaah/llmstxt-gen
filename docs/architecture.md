@@ -1,6 +1,6 @@
 # Architecture
 
-codexa is a small, linear pipeline. Each stage has a narrow job and produces a value the next stage consumes.
+llmstxt-gen is a small, linear pipeline. Each stage has a narrow job and produces a value the next stage consumes.
 
 ```
 +------------+    +----------+    +---------+    +----------+    +--------+
@@ -11,7 +11,7 @@ codexa is a small, linear pipeline. Each stage has a narrow job and produces a v
 
 ## Stage 1: walker
 
-`walker.py` accepts a resolved `CodexaConfig`, walks the repository, and yields a `SourceFile` for every file that survives filtering. Filtering removes:
+`walker.py` accepts a resolved `LlmsTxtConfig`, walks the repository, and yields a `SourceFile` for every file that survives filtering. Filtering removes:
 
 - files outside the user's `include` patterns
 - files matched by `.gitignore`
@@ -24,7 +24,7 @@ The walker is intentionally dumb: it knows nothing about languages beyond extens
 
 ## Stage 2: parsers
 
-Each parser is a subclass of `BaseParser` and lives in `src/codexa/parsers/`. A parser's job is to turn a `SourceFile` into a `ParsedModule`. The Python parser uses `tree-sitter-python`; the TypeScript parser uses `tree-sitter-typescript` (or the JavaScript grammar for `.js` and `.jsx` files).
+Each parser is a subclass of `BaseParser` and lives in `src/llmstxt_gen/parsers/`. A parser's job is to turn a `SourceFile` into a `ParsedModule`. The Python parser uses `tree-sitter-python`; the TypeScript parser uses `tree-sitter-typescript` (or the JavaScript grammar for `.js` and `.jsx` files).
 
 A `ParsedModule` is the universal currency of the pipeline. Once a file has been parsed, no downstream stage cares what language it came from.
 
@@ -52,4 +52,4 @@ Token counting uses `tiktoken` with the `cl100k_base` encoding when available, a
 
 ## Configuration
 
-`config.py` is loaded once, very early, and passed by value to every stage. There is no global state. Tests instantiate `CodexaConfig` directly without touching disk.
+`config.py` is loaded once, very early, and passed by value to every stage. There is no global state. Tests instantiate `LlmsTxtConfig` directly without touching disk.

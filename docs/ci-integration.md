@@ -10,9 +10,9 @@ Add the following to your `.pre-commit-config.yaml`:
 repos:
   - repo: local
     hooks:
-      - id: codexa
-        name: codexa generate
-        entry: codexa generate
+      - id: llmstxt-gen
+        name: llmstxt-gen generate
+        entry: llmstxt-gen generate
         language: system
         pass_filenames: false
         always_run: true
@@ -46,10 +46,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install codexa
+      - name: Install llmstxt-gen
         run: pip install llmstxt-gen
       - name: Generate
-        run: codexa generate
+        run: llmstxt-gen generate
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -62,7 +62,7 @@ If you would rather fail the build when `llms.txt` is out of date instead of aut
 ```yaml
       - name: Verify llms.txt is up to date
         run: |
-          codexa generate
+          llmstxt-gen generate
           git diff --exit-code llms.txt llms-full.txt
 ```
 
@@ -75,7 +75,7 @@ update-llms-txt:
     - if: $CI_COMMIT_BRANCH == "main"
   script:
     - pip install llmstxt-gen
-    - codexa generate
+    - llmstxt-gen generate
     - git config user.email "ci@example.com"
     - git config user.name "ci"
     - git add llms.txt llms-full.txt
@@ -84,5 +84,5 @@ update-llms-txt:
 
 ## Notes
 
-- `codexa generate` is deterministic: the same source tree produces the same output bytes. That makes the diff-and-commit pattern safe.
+- `llmstxt-gen generate` is deterministic: the same source tree produces the same output bytes. That makes the diff-and-commit pattern safe.
 - Token-budget pruning is also deterministic, but if you tighten `max_tokens_summary` your CI will rewrite the file. Plan rollouts of that change deliberately.

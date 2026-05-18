@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from codexa.parsers.python import PythonParser
-from codexa.walker import SourceFile
+from llmstxt_gen.parsers.python import PythonParser
+from llmstxt_gen.walker import SourceFile
 
 
 def _load(path: Path) -> SourceFile:

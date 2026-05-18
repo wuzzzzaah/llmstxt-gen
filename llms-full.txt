@@ -1,19 +1,19 @@
-# codexa
+# llmstxt-gen
 
 > AST-aware llms.txt generator
 
-## src/codexa/__init__.py
-<a id="src-codexa-init-py"></a>
+## src/llmstxt_gen/__init__.py
+<a id="src-llmstxt-gen-init-py"></a>
 
 codexa: AST-aware llms.txt generator.
 
 Public API re-exports the most commonly used entry points so that users can
 build their own pipelines on top of the library.
 
-## src/codexa/cli.py
-<a id="src-codexa-cli-py"></a>
+## src/llmstxt_gen/cli.py
+<a id="src-llmstxt-gen-cli-py"></a>
 
-Typer CLI for codexa.
+Typer CLI for llmstxt-gen.
 
 ### Functions
 
@@ -56,14 +56,14 @@ Print a summary of files scanned, symbols extracted, and tokens used.
 
 #### `main() -> None`
 
-Entry point used by ``python -m codexa``.
+Entry point used by ``python -m llmstxt_gen``.
 
-## src/codexa/config.py
-<a id="src-codexa-config-py"></a>
+## src/llmstxt_gen/config.py
+<a id="src-llmstxt-gen-config-py"></a>
 
-Configuration loading for codexa.
+Configuration loading for llmstxt-gen.
 
-Reads ``[tool.codexa]`` from a project's ``pyproject.toml``. Every option has
+Reads ``[tool.llmstxt_gen]`` from a project's ``pyproject.toml``. Every option has
 a sensible default so a project with no configuration still produces useful
 output.
 
@@ -73,9 +73,9 @@ output.
 
 Walk upward from ``start`` looking for a ``pyproject.toml`` file.
 
-#### `load_config(root: Path, config_path: Path | None = None) -> CodexaConfig`
+#### `load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig`
 
-Load a :class:`CodexaConfig` for the project rooted at ``root``.
+Load a :class:`LlmsTxtConfig` for the project rooted at ``root``.
 
     If ``config_path`` is provided it is used directly. Otherwise the loader
     searches upward from ``root`` for a ``pyproject.toml``. A missing config
@@ -84,7 +84,7 @@ Load a :class:`CodexaConfig` for the project rooted at ``root``.
 
 ### Classes
 
-#### `CodexaConfig`
+#### `LlmsTxtConfig`
 
 Resolved configuration used by every stage of the pipeline.
 
@@ -93,13 +93,13 @@ Resolved configuration used by every stage of the pipeline.
 - `DEFAULT_EXTENSIONS`: `tuple[str, ...]`
 - `DEFAULT_LANGUAGES`: `tuple[str, ...]`
 
-## src/codexa/parsers/__init__.py
-<a id="src-codexa-parsers-init-py"></a>
+## src/llmstxt_gen/parsers/__init__.py
+<a id="src-llmstxt-gen-parsers-init-py"></a>
 
 Language parsers.
 
-Each parser converts a :class:`~codexa.walker.SourceFile` into a
-:class:`~codexa.parsers.base.ParsedModule`.
+Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
+:class:`~llmstxt_gen.parsers.base.ParsedModule`.
 
 ### Functions
 
@@ -107,14 +107,14 @@ Each parser converts a :class:`~codexa.walker.SourceFile` into a
 
 Return a parser instance for ``language`` or ``None`` if unsupported.
 
-## src/codexa/parsers/base.py
-<a id="src-codexa-parsers-base-py"></a>
+## src/llmstxt_gen/parsers/base.py
+<a id="src-llmstxt-gen-parsers-base-py"></a>
 
 Abstract base parser and shared data models.
 
 All language parsers produce instances of :class:`ParsedModule`. Downstream
 stages (pruner, renderer) work exclusively against these structures, which is
-what lets codexa stay language-agnostic.
+what lets llmstxt-gen stay language-agnostic.
 
 ### Classes
 
@@ -149,8 +149,8 @@ Abstract parser interface implemented by every language backend.
 Parse ``source_file`` into a :class:`ParsedModule`.
 
 
-## src/codexa/parsers/python.py
-<a id="src-codexa-parsers-python-py"></a>
+## src/llmstxt_gen/parsers/python.py
+<a id="src-llmstxt-gen-parsers-python-py"></a>
 
 Python parser backed by tree-sitter.
 
@@ -171,8 +171,8 @@ Parse Python source via tree-sitter.
 ###### `parse(self, source_file: SourceFile) -> ParsedModule`
 
 
-## src/codexa/parsers/typescript.py
-<a id="src-codexa-parsers-typescript-py"></a>
+## src/llmstxt_gen/parsers/typescript.py
+<a id="src-llmstxt-gen-parsers-typescript-py"></a>
 
 JavaScript/TypeScript parser backed by tree-sitter.
 
@@ -193,8 +193,8 @@ Parse JavaScript and TypeScript via tree-sitter.
 ###### `parse(self, source_file: SourceFile) -> ParsedModule`
 
 
-## src/codexa/pruner.py
-<a id="src-codexa-pruner-py"></a>
+## src/llmstxt_gen/pruner.py
+<a id="src-llmstxt-gen-pruner-py"></a>
 
 Token-aware pruning.
 
@@ -232,23 +232,23 @@ Return a deep-copied list of modules pruned to fit in ``max_tokens``.
 
 - `_ENCODING`: `object | None`
 
-## src/codexa/renderer.py
-<a id="src-codexa-renderer-py"></a>
+## src/llmstxt_gen/renderer.py
+<a id="src-llmstxt-gen-renderer-py"></a>
 
 Render parsed modules to llms.txt and llms-full.txt Markdown.
 
 ### Functions
 
-#### `render_summary(modules: list[ParsedModule], config: CodexaConfig) -> str`
+#### `render_summary(modules: list[ParsedModule], config: LlmsTxtConfig) -> str`
 
 Render a spec-compliant ``llms.txt`` summary document.
 
-#### `render_full(modules: list[ParsedModule], config: CodexaConfig) -> str`
+#### `render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str`
 
 Render the detailed ``llms-full.txt`` document.
 
-## src/codexa/walker.py
-<a id="src-codexa-walker-py"></a>
+## src/llmstxt_gen/walker.py
+<a id="src-llmstxt-gen-walker-py"></a>
 
 File system walker.
 
@@ -261,7 +261,7 @@ honoring ``.gitignore`` and the user's configured ``exclude`` patterns.
 
 Return the language name for a file path, or ``None`` if unsupported.
 
-#### `walk_repository(config: CodexaConfig) -> Iterator[SourceFile]`
+#### `walk_repository(config: LlmsTxtConfig) -> Iterator[SourceFile]`
 
 Yield :class:`SourceFile` objects for every supported file under ``config.root``.
 
@@ -284,14 +284,14 @@ A single source file ready to be parsed.
 
 - `EXTENSION_TO_LANGUAGE`: `dict[str, str]`
 
-## src/codexa/writer.py
-<a id="src-codexa-writer-py"></a>
+## src/llmstxt_gen/writer.py
+<a id="src-llmstxt-gen-writer-py"></a>
 
 Write rendered output to disk.
 
 ### Functions
 
-#### `write_outputs(config: CodexaConfig, summary: str, full: str | None) -> list[Path]`
+#### `write_outputs(config: LlmsTxtConfig, summary: str, full: str | None) -> list[Path]`
 
 Write the summary (and optional full) document into ``config.output_dir``.
 

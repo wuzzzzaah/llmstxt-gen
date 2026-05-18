@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from codexa.config import find_pyproject, load_config
+from llmstxt_gen.config import find_pyproject, load_config
 
 
 def test_load_config_returns_defaults_when_no_pyproject(tmp_path: Path) -> None:
@@ -10,14 +10,14 @@ def test_load_config_returns_defaults_when_no_pyproject(tmp_path: Path) -> None:
     assert cfg.include_private is False
 
 
-def test_load_config_reads_tool_codexa_section(tmp_path: Path) -> None:
+def test_load_config_reads_tool_section(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text(
         """
 [project]
 name = "demo"
 description = "A demo"
 
-[tool.codexa]
+[tool.llmstxt_gen]
 include = ["src/"]
 exclude = ["tests/"]
 include_private = true

@@ -5,11 +5,11 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
-- Initial release of codexa.
+- Initial release of llmstxt-gen.
 - Python parser backed by tree-sitter.
 - JavaScript and TypeScript parser backed by tree-sitter.
 - File-system walker that honors `.gitignore` and user-configured exclude patterns.
 - Token-aware pruner with five staged pruning levels.
 - Renderer producing spec-compliant `llms.txt` and `llms-full.txt` Markdown.
 - Typer-based CLI with `generate`, `validate`, and `stats` commands.
-- Configuration loader for `[tool.codexa]` blocks in `pyproject.toml`.
+- Configuration loader for `[tool.llmstxt_gen]` blocks in `pyproject.toml`.

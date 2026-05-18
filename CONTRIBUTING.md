@@ -1,14 +1,14 @@
-# Contributing to codexa
+# Contributing to llmstxt-gen
 
-Thanks for your interest in improving codexa. This document explains how to get set up locally, how to run the test suite and quality checks, and how to add support for a new language.
+Thanks for your interest in improving llmstxt-gen. This document explains how to get set up locally, how to run the test suite and quality checks, and how to add support for a new language.
 
 ## Development setup
 
 Clone the repository and create a fresh virtual environment:
 
 ```sh
-git clone https://github.com/wuzzzzaah/codexa.git
-cd codexa
+git clone https://github.com/wuzzzzaah/llmstxt-gen.git
+cd llmstxt-gen
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -17,7 +17,7 @@ pip install -e ".[dev]"
 Verify the install:
 
 ```sh
-codexa --help
+llmstxt-gen --help
 ```
 
 ## Running the test suite
@@ -29,7 +29,7 @@ pytest
 For a coverage report:
 
 ```sh
-pytest --cov=codexa --cov-report=term-missing
+pytest --cov=llmstxt_gen --cov-report=term-missing
 ```
 
 The project enforces a minimum of 80 percent line coverage in CI.
@@ -55,10 +55,10 @@ All three must pass before a pull request can be merged.
 ## How to add support for a new language
 
 1. Add the tree-sitter binding to `dependencies` in `pyproject.toml`.
-2. Create `src/codexa/parsers/<language>.py` implementing `BaseParser`. The parser must convert a `SourceFile` into a `ParsedModule` and respect the `include_private` flag.
-3. Register the parser in `src/codexa/parsers/__init__.py` inside `parser_for(language)`.
-4. Extend `EXTENSION_TO_LANGUAGE` in `src/codexa/walker.py` with any new file extensions.
-5. Add the extensions to `DEFAULT_EXTENSIONS` and the language name to `DEFAULT_LANGUAGES` in `src/codexa/config.py`.
+2. Create `src/llmstxt_gen/parsers/<language>.py` implementing `BaseParser`. The parser must convert a `SourceFile` into a `ParsedModule` and respect the `include_private` flag.
+3. Register the parser in `src/llmstxt_gen/parsers/__init__.py` inside `parser_for(language)`.
+4. Extend `EXTENSION_TO_LANGUAGE` in `src/llmstxt_gen/walker.py` with any new file extensions.
+5. Add the extensions to `DEFAULT_EXTENSIONS` and the language name to `DEFAULT_LANGUAGES` in `src/llmstxt_gen/config.py`.
 6. Add a small fixture project under `tests/fixtures/sample_<language>/` exercising at least one function, one class with a method, and one private symbol.
 7. Add `tests/test_<language>_parser.py` with explicit assertions for each of the symbol types your parser supports.
 8. Document the new language in `README.md` and in `docs/configuration.md`.

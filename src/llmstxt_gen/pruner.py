@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 
-from codexa.parsers.base import ParsedModule
+from llmstxt_gen.parsers.base import ParsedModule
 
 _ENCODING: object | None
 try:  # pragma: no cover - optional dependency

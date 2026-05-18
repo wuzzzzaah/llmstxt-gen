@@ -1,6 +1,6 @@
 # Configuration
 
-codexa reads all of its options from your `pyproject.toml` under the `[tool.codexa]` table. Every option has a default, so you can run `codexa generate` against any project without writing config first.
+llmstxt-gen reads all of its options from your `pyproject.toml` under the `[tool.llmstxt_gen]` table. Every option has a default, so you can run `llmstxt-gen generate` against any project without writing config first.
 
 ## Project metadata
 
@@ -40,7 +40,7 @@ Patterns use the same syntax as `.gitignore` (gitwildmatch).
 ## A worked example
 
 ```toml
-[tool.codexa]
+[tool.llmstxt_gen]
 name = "my-library"
 description = "A small library for doing the thing."
 include = ["src/my_library/"]

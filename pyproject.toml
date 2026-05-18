@@ -43,16 +43,16 @@ dev = [
 tokens = ["tiktoken>=0.7"]
 
 [project.scripts]
-codexa = "codexa.cli:app"
+llmstxt-gen = "llmstxt_gen.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/wuzzzzaah/codexa"
-Repository = "https://github.com/wuzzzzaah/codexa"
-Documentation = "https://github.com/wuzzzzaah/codexa/tree/main/docs"
-Issues = "https://github.com/wuzzzzaah/codexa/issues"
+Homepage = "https://github.com/wuzzzzaah/llmstxt-gen"
+Repository = "https://github.com/wuzzzzaah/llmstxt-gen"
+Documentation = "https://github.com/wuzzzzaah/llmstxt-gen/tree/main/docs"
+Issues = "https://github.com/wuzzzzaah/llmstxt-gen/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/codexa"]
+packages = ["src/llmstxt_gen"]
 
 [tool.ruff]
 line-length = 100
@@ -65,7 +65,7 @@ ignore = ["E501"]
 [tool.mypy]
 strict = true
 python_version = "3.11"
-files = ["src/codexa"]
+files = ["src/llmstxt_gen"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -82,11 +82,11 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
-source = ["src/codexa"]
+source = ["src/llmstxt_gen"]
 branch = true
 
-[tool.codexa]
-name = "codexa"
+[tool.llmstxt_gen]
+name = "llmstxt-gen"
 description = "AST-aware llms.txt generator"
 include = ["src/"]
 exclude = ["tests/", "docs/"]

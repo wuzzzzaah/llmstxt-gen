@@ -1,14 +1,14 @@
 """Language parsers.
 
-Each parser converts a :class:`~codexa.walker.SourceFile` into a
-:class:`~codexa.parsers.base.ParsedModule`.
+Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
+:class:`~llmstxt_gen.parsers.base.ParsedModule`.
 """
 
 from __future__ import annotations
 
-from codexa.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
-from codexa.parsers.python import PythonParser
-from codexa.parsers.typescript import TypeScriptParser
+from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
+from llmstxt_gen.parsers.python import PythonParser
+from llmstxt_gen.parsers.typescript import TypeScriptParser
 
 __all__ = [
     "BaseParser",

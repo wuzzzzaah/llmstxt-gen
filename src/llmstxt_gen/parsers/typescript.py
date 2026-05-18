@@ -13,7 +13,7 @@ import tree_sitter_javascript
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
-from codexa.parsers.base import (
+from llmstxt_gen.parsers.base import (
     BaseParser,
     ParsedClass,
     ParsedConstant,
@@ -21,7 +21,7 @@ from codexa.parsers.base import (
     ParsedModule,
     ParsedParameter,
 )
-from codexa.walker import SourceFile
+from llmstxt_gen.walker import SourceFile
 
 _JS_LANGUAGE = Language(tree_sitter_javascript.language())
 _TS_LANGUAGE = Language(tree_sitter_typescript.language_typescript())

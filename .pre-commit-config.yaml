@@ -21,9 +21,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: codexa-self-check
-        name: codexa generate (self-check)
-        entry: codexa generate --dry-run
+      - id: llmstxt-gen-self-check
+        name: llmstxt-gen generate (self-check)
+        entry: llmstxt-gen generate --dry-run
         language: system
         pass_filenames: false
         always_run: true

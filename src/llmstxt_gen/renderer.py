@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from codexa.config import CodexaConfig
-from codexa.parsers.base import ParsedFunction, ParsedModule
+from llmstxt_gen.config import LlmsTxtConfig
+from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule
 
 _ANCHOR_RE = re.compile(r"[^a-z0-9]+")
 
@@ -43,7 +43,7 @@ def _format_signature(fn: ParsedFunction) -> str:
     return sig
 
 
-def render_summary(modules: list[ParsedModule], config: CodexaConfig) -> str:
+def render_summary(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render a spec-compliant ``llms.txt`` summary document."""
     out: list[str] = [f"# {config.name or 'project'}", ""]
     if config.description:
@@ -72,7 +72,7 @@ def _module_fallback(module: ParsedModule) -> str:
     return ""
 
 
-def render_full(modules: list[ParsedModule], config: CodexaConfig) -> str:
+def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render the detailed ``llms-full.txt`` document."""
     out: list[str] = [f"# {config.name or 'project'}", ""]
     if config.description:

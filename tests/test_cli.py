@@ -2,7 +2,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from codexa.cli import app
+from llmstxt_gen.cli import app
 
 runner = CliRunner()
 

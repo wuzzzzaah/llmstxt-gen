@@ -1,6 +1,6 @@
 # Output format
 
-codexa produces two Markdown files. This document walks through what each section looks like, using a small worked example.
+llmstxt-gen produces two Markdown files. This document walks through what each section looks like, using a small worked example.
 
 ## The input
 
