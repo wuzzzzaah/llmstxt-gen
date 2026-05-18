@@ -1,4 +1,4 @@
-"""codexa: AST-aware llms.txt generator.
+"""llmstxt-gen: AST-aware llms.txt generator.
 
 Public API re-exports the most commonly used entry points so that users can
 build their own pipelines on top of the library.
@@ -11,7 +11,7 @@ from llmstxt_gen.renderer import render_full, render_summary
 from llmstxt_gen.walker import SourceFile, walk_repository
 from llmstxt_gen.writer import write_outputs
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "LlmsTxtConfig",
