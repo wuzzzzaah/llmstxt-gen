@@ -9,6 +9,7 @@ def test_detect_language_recognises_supported_extensions() -> None:
     assert detect_language(Path("a.ts")) == "typescript"
     assert detect_language(Path("a.tsx")) == "typescript"
     assert detect_language(Path("a.js")) == "javascript"
+    assert detect_language(Path("a.go")) == "go"
     assert detect_language(Path("a.txt")) is None
 
 
@@ -39,3 +40,13 @@ def test_walker_finds_typescript_fixture(sample_typescript_root: Path) -> None:
     )
     files = list(walk_repository(cfg))
     assert {f.path.name for f in files} == {"index.ts"}
+
+
+def test_walker_finds_go_fixture(sample_go_root: Path) -> None:
+    cfg = LlmsTxtConfig(
+        root=sample_go_root,
+        languages=["go"],
+        extensions=[".go"],
+    )
+    files = list(walk_repository(cfg))
+    assert {f.path.name for f in files} == {"main.go"}
