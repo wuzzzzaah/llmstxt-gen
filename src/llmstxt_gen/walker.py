@@ -21,6 +21,10 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".ts": "typescript",
     ".tsx": "typescript",
     ".go": "go",
+    ".rs": "rust",
+    ".rb": "ruby",
+    ".java": "java",
+    ".cs": "csharp",
 }
 
 ALWAYS_EXCLUDED = {
