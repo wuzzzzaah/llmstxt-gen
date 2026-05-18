@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- Ruby language support via `tree-sitter-ruby`. Extracts modules, classes, methods, constants, and expands `attr_*` macros.
+
 ## [0.2.0] - 2026-05-18
 
 ### Added

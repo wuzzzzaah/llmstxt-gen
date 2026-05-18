@@ -11,6 +11,7 @@ If you want to contribute a parser, the step-by-step guide is in [CONTRIBUTING.m
 | Python | v0.1.0 | Tree-sitter-python. Functions, classes, decorators, async, properties, type hints, module docstrings. |
 | JavaScript / TypeScript | v0.1.0 | Tree-sitter-javascript and tree-sitter-typescript. Exports, JSDoc, interfaces, type aliases, arrow functions. |
 | Go | v0.2.0 | Tree-sitter-go. Package doc comments, exported functions, methods attached to receivers, structs, interfaces (with methods), type aliases, constants. |
+| Ruby | v0.2.0 | Tree-sitter-ruby. Modules, classes, methods, constants, attr_* expansion, visibility filtering. |
 
 ## Next wave — priority order
 
