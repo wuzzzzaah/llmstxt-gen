@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- Java parser backed by tree-sitter-java. Extracts package Javadoc, public/protected classes, interfaces, enums, records, and their members (methods, constructors, fields, enum constants). Supports generics, annotations, and flattened inner classes.
+
 ## [0.2.0] - 2026-05-18
 
 ### Added
