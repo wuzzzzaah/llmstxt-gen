@@ -7,6 +7,7 @@ Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
 from __future__ import annotations
 
 from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
+from llmstxt_gen.parsers.csharp import CSharpParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.typescript import TypeScriptParser
@@ -16,6 +17,7 @@ __all__ = [
     "ParsedClass",
     "ParsedFunction",
     "ParsedModule",
+    "CSharpParser",
     "GoParser",
     "PythonParser",
     "TypeScriptParser",
@@ -30,4 +32,6 @@ def parser_for(language: str) -> BaseParser | None:
         return TypeScriptParser()
     if language == "go":
         return GoParser()
+    if language == "csharp":
+        return CSharpParser()
     return None

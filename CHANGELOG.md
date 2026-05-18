@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- C# parser backed by tree-sitter-c-sharp. Extracts XML doc comments, public/protected classes, structs, interfaces, records, enums, and their members (methods, properties, fields, events). Preserves attributes as decorators and generic constraints in signatures.
+
 ## [0.2.0] - 2026-05-18
 
 ### Added

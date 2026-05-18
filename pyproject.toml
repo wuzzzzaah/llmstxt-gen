@@ -30,6 +30,7 @@ dependencies = [
     "tree-sitter-javascript>=0.21",
     "tree-sitter-typescript>=0.21",
     "tree-sitter-go>=0.21",
+    "tree-sitter-c-sharp>=0.21",
     "pathspec>=0.12",
 ]
 
