@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - typer
+          - tree-sitter
+          - tree-sitter-python
+          - tree-sitter-javascript
+          - tree-sitter-typescript
+          - pathspec
+        files: ^src/
+
+  - repo: local
+    hooks:
+      - id: codexa-self-check
+        name: codexa generate (self-check)
+        entry: codexa generate --dry-run
+        language: system
+        pass_filenames: false
+        always_run: true

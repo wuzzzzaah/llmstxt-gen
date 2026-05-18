@@ -1,0 +1,82 @@
+"""Abstract base parser and shared data models.
+
+All language parsers produce instances of :class:`ParsedModule`. Downstream
+stages (pruner, renderer) work exclusively against these structures, which is
+what lets codexa stay language-agnostic.
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+
+from codexa.walker import SourceFile
+
+
+@dataclass
+class ParsedParameter:
+    """A function or method parameter."""
+
+    name: str
+    type_hint: str = ""
+    default: str = ""
+
+
+@dataclass
+class ParsedFunction:
+    """A function, method, or arrow function definition."""
+
+    name: str
+    parameters: list[ParsedParameter] = field(default_factory=list)
+    return_type: str = ""
+    docstring: str = ""
+    line: int = 0
+    is_async: bool = False
+    is_private: bool = False
+    is_property: bool = False
+    decorators: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ParsedConstant:
+    """A module-level constant with a known type annotation."""
+
+    name: str
+    type_hint: str = ""
+    value: str = ""
+
+
+@dataclass
+class ParsedClass:
+    """A class definition with its methods and class variables."""
+
+    name: str
+    docstring: str = ""
+    bases: list[str] = field(default_factory=list)
+    methods: list[ParsedFunction] = field(default_factory=list)
+    class_vars: list[ParsedConstant] = field(default_factory=list)
+    line: int = 0
+
+
+@dataclass
+class ParsedModule:
+    """A single source file converted to a structured representation."""
+
+    name: str
+    path: str
+    language: str
+    docstring: str = ""
+    functions: list[ParsedFunction] = field(default_factory=list)
+    classes: list[ParsedClass] = field(default_factory=list)
+    constants: list[ParsedConstant] = field(default_factory=list)
+
+
+class BaseParser(ABC):
+    """Abstract parser interface implemented by every language backend."""
+
+    language: str = ""
+
+    @abstractmethod
+    def parse(self, source_file: SourceFile) -> ParsedModule:
+        """Parse ``source_file`` into a :class:`ParsedModule`."""
+        raise NotImplementedError

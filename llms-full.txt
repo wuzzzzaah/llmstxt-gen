@@ -1,0 +1,298 @@
+# codexa
+
+> AST-aware llms.txt generator
+
+## src/codexa/__init__.py
+<a id="src-codexa-init-py"></a>
+
+codexa: AST-aware llms.txt generator.
+
+Public API re-exports the most commonly used entry points so that users can
+build their own pipelines on top of the library.
+
+## src/codexa/cli.py
+<a id="src-codexa-cli-py"></a>
+
+Typer CLI for codexa.
+
+### Functions
+
+#### `generate(path: Annotated[Path, typer.Argument(help="Project root to scan.")] = Path("."), output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", help="Override output directory."),
+    ] = None, dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Print output to stdout instead of writing files."),
+    ] = False, verbose: Annotated[bool, typer.Option("--verbose", help="Show per-file details.")] = False, no_full: Annotated[
+        bool,
+        typer.Option("--no-full", help="Skip generating llms-full.txt."),
+    ] = False, config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Path to a specific pyproject.toml."),
+    ] = None) -> None`
+_Decorators: @app.command()_
+
+Generate ``llms.txt`` (and ``llms-full.txt``) for a project.
+
+#### `validate(path: Annotated[
+        Path,
+        typer.Argument(help="Path to an existing llms.txt file or its containing directory."),
+    ] = Path("llms.txt")) -> None`
+_Decorators: @app.command()_
+
+Validate that an existing ``llms.txt`` file is spec-compliant.
+
+    The check verifies that the file begins with a level-one heading and
+    contains at least one section listing modules. It exits with code ``1``
+    when the file is missing or invalid.
+
+#### `stats(path: Annotated[Path, typer.Argument(help="Project root to scan.")] = Path("."), config: Annotated[
+        Path | None,
+        typer.Option("--config", help="Path to a specific pyproject.toml."),
+    ] = None) -> None`
+_Decorators: @app.command()_
+
+Print a summary of files scanned, symbols extracted, and tokens used.
+
+#### `main() -> None`
+
+Entry point used by ``python -m codexa``.
+
+## src/codexa/config.py
+<a id="src-codexa-config-py"></a>
+
+Configuration loading for codexa.
+
+Reads ``[tool.codexa]`` from a project's ``pyproject.toml``. Every option has
+a sensible default so a project with no configuration still produces useful
+output.
+
+### Functions
+
+#### `find_pyproject(start: Path) -> Path | None`
+
+Walk upward from ``start`` looking for a ``pyproject.toml`` file.
+
+#### `load_config(root: Path, config_path: Path | None = None) -> CodexaConfig`
+
+Load a :class:`CodexaConfig` for the project rooted at ``root``.
+
+    If ``config_path`` is provided it is used directly. Otherwise the loader
+    searches upward from ``root`` for a ``pyproject.toml``. A missing config
+    file is not an error: defaults are returned with ``name`` set to the
+    directory name.
+
+### Classes
+
+#### `CodexaConfig`
+
+Resolved configuration used by every stage of the pipeline.
+
+### Constants
+
+- `DEFAULT_EXTENSIONS`: `tuple[str, ...]`
+- `DEFAULT_LANGUAGES`: `tuple[str, ...]`
+
+## src/codexa/parsers/__init__.py
+<a id="src-codexa-parsers-init-py"></a>
+
+Language parsers.
+
+Each parser converts a :class:`~codexa.walker.SourceFile` into a
+:class:`~codexa.parsers.base.ParsedModule`.
+
+### Functions
+
+#### `parser_for(language: str) -> BaseParser | None`
+
+Return a parser instance for ``language`` or ``None`` if unsupported.
+
+## src/codexa/parsers/base.py
+<a id="src-codexa-parsers-base-py"></a>
+
+Abstract base parser and shared data models.
+
+All language parsers produce instances of :class:`ParsedModule`. Downstream
+stages (pruner, renderer) work exclusively against these structures, which is
+what lets codexa stay language-agnostic.
+
+### Classes
+
+#### `ParsedParameter`
+
+A function or method parameter.
+
+#### `ParsedFunction`
+
+A function, method, or arrow function definition.
+
+#### `ParsedConstant`
+
+A module-level constant with a known type annotation.
+
+#### `ParsedClass`
+
+A class definition with its methods and class variables.
+
+#### `ParsedModule`
+
+A single source file converted to a structured representation.
+
+#### `BaseParser(ABC)`
+
+Abstract parser interface implemented by every language backend.
+
+##### Methods
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+Parse ``source_file`` into a :class:`ParsedModule`.
+
+
+## src/codexa/parsers/python.py
+<a id="src-codexa-parsers-python-py"></a>
+
+Python parser backed by tree-sitter.
+
+Extracts the module docstring, top-level functions, classes, and annotated
+constants. Private symbols (``_leading_underscore``) are omitted unless the
+caller opts in via :class:`PythonParser` ``include_private``.
+
+### Classes
+
+#### `PythonParser(BaseParser)`
+
+Parse Python source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/codexa/parsers/typescript.py
+<a id="src-codexa-parsers-typescript-py"></a>
+
+JavaScript/TypeScript parser backed by tree-sitter.
+
+Extracts exported functions, classes, type aliases, interfaces, and
+constants. Non-exported symbols are skipped unless ``include_private`` is
+set on the parser.
+
+### Classes
+
+#### `TypeScriptParser(BaseParser)`
+
+Parse JavaScript and TypeScript via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/codexa/pruner.py
+<a id="src-codexa-pruner-py"></a>
+
+Token-aware pruning.
+
+Given a sequence of :class:`ParsedModule` objects, drop the lowest-priority
+content first until the rendered output is expected to fit in a token budget.
+
+### Functions
+
+#### `estimate_tokens(text: str) -> int`
+
+Estimate the number of tokens a string will consume.
+
+    Uses ``tiktoken`` with the ``cl100k_base`` encoding when available, and
+    falls back to a four-characters-per-token heuristic otherwise.
+
+#### `estimate_total_tokens(modules: list[ParsedModule]) -> int`
+
+Sum the per-module token estimate across ``modules``.
+
+#### `prune_modules(modules: list[ParsedModule], max_tokens: int) -> list[ParsedModule]`
+
+Return a deep-copied list of modules pruned to fit in ``max_tokens``.
+
+    Pruning proceeds in five stages, lowest-value content first:
+
+    1. Drop constants and type aliases.
+    2. Drop parameter ``type_hint`` and ``default`` details.
+    3. Drop method docstrings.
+    4. Drop method signatures entirely.
+    5. Drop top-level function docstrings.
+
+    Modules, class names, and class docstrings are always preserved.
+
+### Constants
+
+- `_ENCODING`: `object | None`
+
+## src/codexa/renderer.py
+<a id="src-codexa-renderer-py"></a>
+
+Render parsed modules to llms.txt and llms-full.txt Markdown.
+
+### Functions
+
+#### `render_summary(modules: list[ParsedModule], config: CodexaConfig) -> str`
+
+Render a spec-compliant ``llms.txt`` summary document.
+
+#### `render_full(modules: list[ParsedModule], config: CodexaConfig) -> str`
+
+Render the detailed ``llms-full.txt`` document.
+
+## src/codexa/walker.py
+<a id="src-codexa-walker-py"></a>
+
+File system walker.
+
+Walks a project directory yielding source files in supported languages,
+honoring ``.gitignore`` and the user's configured ``exclude`` patterns.
+
+### Functions
+
+#### `detect_language(path: Path) -> str | None`
+
+Return the language name for a file path, or ``None`` if unsupported.
+
+#### `walk_repository(config: CodexaConfig) -> Iterator[SourceFile]`
+
+Yield :class:`SourceFile` objects for every supported file under ``config.root``.
+
+    Files are skipped when they:
+
+    - have an extension not in ``config.extensions``
+    - sit under a directory in :data:`ALWAYS_EXCLUDED`
+    - match a ``.gitignore`` rule at the repository root
+    - match a user-specified ``exclude`` pattern
+    - fall outside the user's ``include`` patterns when those are set
+    - contain binary content
+
+### Classes
+
+#### `SourceFile`
+
+A single source file ready to be parsed.
+
+### Constants
+
+- `EXTENSION_TO_LANGUAGE`: `dict[str, str]`
+
+## src/codexa/writer.py
+<a id="src-codexa-writer-py"></a>
+
+Write rendered output to disk.
+
+### Functions
+
+#### `write_outputs(config: CodexaConfig, summary: str, full: str | None) -> list[Path]`
+
+Write the summary (and optional full) document into ``config.output_dir``.
+
+    Returns the list of paths written.
