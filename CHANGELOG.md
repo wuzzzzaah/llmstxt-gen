@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- Java parser backed by tree-sitter-java. Extracts package Javadoc, public/protected classes, interfaces, enums, records, and their members (methods, constructors, fields, enum constants). Supports generics, annotations, and flattened inner classes.
+- Ruby parser backed by tree-sitter-ruby. Extracts modules, classes, methods, constants, and expands `attr_*` macros. Respects private/protected visibility.
+- C# parser backed by tree-sitter-c-sharp. Extracts XML doc comments, public/protected classes, structs, interfaces, records, enums, and their members. Preserves attributes as decorators and generic constraints in signatures.
+- Rust parser backed by tree-sitter-rust. Extracts module doc comments (`//!`, `///`), public functions (including generics and where clauses), structs, enums, traits, impl blocks, type aliases, and constants/statics.
+
 ## [0.2.0] - 2026-05-18
 
 ### Added
