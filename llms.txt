@@ -7,6 +7,7 @@ cli: Typer CLI for llmstxt-gen.
 config: Configuration loading for llmstxt-gen.
 __init__: Language parsers.
 base: Abstract base parser and shared data models.
+go: Go parser backed by tree-sitter.
 python: Python parser backed by tree-sitter.
 typescript: JavaScript/TypeScript parser backed by tree-sitter.
 pruner: Token-aware pruning.
@@ -21,6 +22,7 @@ writer: Write rendered output to disk.
 - [config](llms-full.txt#src-llmstxt-gen-config-py): Configuration loading for llmstxt-gen.
 - [__init__](llms-full.txt#src-llmstxt-gen-parsers-init-py): Language parsers.
 - [base](llms-full.txt#src-llmstxt-gen-parsers-base-py): Abstract base parser and shared data models.
+- [go](llms-full.txt#src-llmstxt-gen-parsers-go-py): Go parser backed by tree-sitter.
 - [python](llms-full.txt#src-llmstxt-gen-parsers-python-py): Python parser backed by tree-sitter.
 - [typescript](llms-full.txt#src-llmstxt-gen-parsers-typescript-py): JavaScript/TypeScript parser backed by tree-sitter.
 - [pruner](llms-full.txt#src-llmstxt-gen-pruner-py): Token-aware pruning.

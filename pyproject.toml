@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "llmstxt-gen"
-version = "0.1.0"
+version = "0.2.0"
 description = "AST-aware llms.txt generator for Python and JavaScript/TypeScript codebases"
 readme = "README.md"
 license = { text = "MIT" }

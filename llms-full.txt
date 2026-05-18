@@ -149,6 +149,28 @@ Abstract parser interface implemented by every language backend.
 Parse ``source_file`` into a :class:`ParsedModule`.
 
 
+## src/llmstxt_gen/parsers/go.py
+<a id="src-llmstxt-gen-parsers-go-py"></a>
+
+Go parser backed by tree-sitter.
+
+Extracts package docstrings, exported functions, structs, interfaces, and
+constants/variables. Non-exported symbols (starting with lowercase) are
+skipped unless ``include_private`` is set on the parser.
+
+### Classes
+
+#### `GoParser(BaseParser)`
+
+Parse Go source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
 ## src/llmstxt_gen/parsers/python.py
 <a id="src-llmstxt-gen-parsers-python-py"></a>
 
