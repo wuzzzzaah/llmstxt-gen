@@ -1,6 +1,6 @@
 # llmstxt-gen
 
-> AST-aware `llms.txt` generator for Python, JavaScript/TypeScript, and Go codebases.
+> AST-aware `llms.txt` generator for Python, JavaScript/TypeScript, Go, and Swift codebases.
 
 [![PyPI version](https://img.shields.io/pypi/v/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
 [![Python versions](https://img.shields.io/pypi/pyversions/llmstxt-gen.svg)](https://pypi.org/project/llmstxt-gen/)
@@ -13,7 +13,7 @@ LLM coding agents work best when they have an accurate, up-to-date map of the co
 
 Most existing generators build that file by scraping a project's published docs site. Scrapers go stale the moment your code changes, they bring along marketing prose the agent does not need, and they cannot describe code that has not been documented yet. The result is an `llms.txt` that confidently lists deprecated APIs.
 
-`llmstxt-gen` takes a different approach. It reads your Python, JavaScript/TypeScript, or Go source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
+`llmstxt-gen` takes a different approach. It reads your Python, JavaScript/TypeScript, Go, or Swift source code directly, parses it with tree-sitter into an Abstract Syntax Tree, and extracts the things an agent actually needs: function signatures, type hints, docstrings, class hierarchies, and exported symbols. The result is a token-efficient, always-current Markdown file you can regenerate from a pre-commit hook or a CI job.
 
 No scraping. No cloud calls. No framework lock-in.
 
@@ -27,7 +27,7 @@ Requires Python 3.11 or newer. The PyPI distribution name is `llmstxt-gen`; the 
 
 ## Quick start
 
-From the root of any Python, JavaScript/TypeScript, or Go project:
+From the root of any Python, JavaScript/TypeScript, Go, or Swift project:
 
 ```sh
 llmstxt-gen generate
@@ -93,14 +93,14 @@ All options live in your `pyproject.toml` under `[tool.llmstxt_gen]`. Every key 
 | `version` | string | `""` | Project version |
 | `include` | list of strings | `[]` (all) | Paths to scan, relative to the repo root |
 | `exclude` | list of strings | `[]` | Additional patterns to skip, beyond `.gitignore` |
-| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go"]` | File extensions to consider |
+| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".java", ".cs", ".swift"]` | File extensions to consider |
 | `output_dir` | string | `"."` | Where to write the output files |
 | `output_summary` | string | `"llms.txt"` | Filename for the summary file |
 | `output_full` | string | `"llms-full.txt"` | Filename for the full reference |
 | `include_private` | bool | `false` | Include private or non-exported symbols |
 | `max_tokens_summary` | int | `8000` | Token budget for `llms.txt` |
 | `max_tokens_full` | int | `32000` | Token budget for `llms-full.txt` |
-| `languages` | list of strings | `["python", "typescript", "go"]` | Parsers to activate |
+| `languages` | list of strings | `["python", "typescript", "go", "rust", "ruby", "java", "csharp", "swift"]` | Parsers to activate |
 
 Example:
 
@@ -176,9 +176,9 @@ MIT. See [LICENSE](LICENSE).
 
 ## Roadmap
 
-Today: Python, JavaScript/TypeScript, Go.
+Today: Python, JavaScript/TypeScript, Go, Rust, Ruby, Java, C#, Swift.
 
-Next: Rust, Ruby, Java, C# — in that order. The full plan with rationale, scope, and contribution instructions lives in [docs/roadmap.md](docs/roadmap.md).
+The full plan with rationale, scope, and contribution instructions lives in [docs/roadmap.md](docs/roadmap.md).
 
 Beyond language support, planned work:
 

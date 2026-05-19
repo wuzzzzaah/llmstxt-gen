@@ -25,6 +25,7 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".rb": "ruby",
     ".java": "java",
     ".cs": "csharp",
+    ".swift": "swift",
 }
 
 ALWAYS_EXCLUDED = {
