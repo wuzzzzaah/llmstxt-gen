@@ -35,6 +35,7 @@ dependencies = [
     "tree-sitter-ruby>=0.21",
     "tree-sitter-c-sharp>=0.21",
     "tree-sitter-rust>=0.21",
+    "tree-sitter-php>=0.24.1",
 ]
 
 [project.optional-dependencies]

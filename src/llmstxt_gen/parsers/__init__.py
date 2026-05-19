@@ -10,6 +10,7 @@ from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, Pa
 from llmstxt_gen.parsers.csharp import CSharpParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
+from llmstxt_gen.parsers.php import PHPParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
 from llmstxt_gen.parsers.rust import RustParser
@@ -23,6 +24,7 @@ __all__ = [
     "CSharpParser",
     "GoParser",
     "JavaParser",
+    "PHPParser",
     "PythonParser",
     "RubyParser",
     "RustParser",
@@ -40,6 +42,8 @@ def parser_for(language: str) -> BaseParser | None:
         return GoParser()
     if language == "java":
         return JavaParser()
+    if language == "php":
+        return PHPParser()
     if language == "ruby":
         return RubyParser()
     if language == "csharp":
