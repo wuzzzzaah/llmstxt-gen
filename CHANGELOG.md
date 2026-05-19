@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Ruby parser backed by tree-sitter-ruby. Extracts modules, classes, methods, constants, and expands `attr_*` macros. Respects private/protected visibility.
 - C# parser backed by tree-sitter-c-sharp. Extracts XML doc comments, public/protected classes, structs, interfaces, records, enums, and their members. Preserves attributes as decorators and generic constraints in signatures.
 - Rust parser backed by tree-sitter-rust. Extracts module doc comments (`//!`, `///`), public functions (including generics and where clauses), structs, enums, traits, impl blocks, type aliases, and constants/statics.
+- Scala parser backed by tree-sitter-scala. Extracts ScalaDoc, classes, objects, traits, enums, methods, and members. Handles Scala 3 features like given instances and extension methods. Companion objects are merged into their associated classes.
 
 ## [0.2.0] - 2026-05-18
 
