@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
 from llmstxt_gen.parsers.csharp import CSharpParser
+from llmstxt_gen.parsers.elixir import ElixirParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
 from llmstxt_gen.parsers.python import PythonParser
@@ -21,6 +22,7 @@ __all__ = [
     "ParsedFunction",
     "ParsedModule",
     "CSharpParser",
+    "ElixirParser",
     "GoParser",
     "JavaParser",
     "PythonParser",
@@ -46,4 +48,6 @@ def parser_for(language: str) -> BaseParser | None:
         return CSharpParser()
     if language == "rust":
         return RustParser()
+    if language == "elixir":
+        return ElixirParser()
     return None

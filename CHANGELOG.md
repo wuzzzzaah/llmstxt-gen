@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Ruby parser backed by tree-sitter-ruby. Extracts modules, classes, methods, constants, and expands `attr_*` macros. Respects private/protected visibility.
 - C# parser backed by tree-sitter-c-sharp. Extracts XML doc comments, public/protected classes, structs, interfaces, records, enums, and their members. Preserves attributes as decorators and generic constraints in signatures.
 - Rust parser backed by tree-sitter-rust. Extracts module doc comments (`//!`, `///`), public functions (including generics and where clauses), structs, enums, traits, impl blocks, type aliases, and constants/statics.
+- Elixir parser backed by tree-sitter-elixir. Extracts `@moduledoc`, public functions (`def`), macros (`defmacro`), structs (`defstruct`), behaviours, and protocols/implementations. Handles multiple function heads and `@spec` type hints.
 
 ## [0.2.0] - 2026-05-18
 
