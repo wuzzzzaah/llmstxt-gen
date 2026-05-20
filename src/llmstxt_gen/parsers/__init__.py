@@ -12,6 +12,7 @@ from llmstxt_gen.parsers.csharp import CSharpParser
 from llmstxt_gen.parsers.elixir import ElixirParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
+from llmstxt_gen.parsers.kotlin import KotlinParser
 from llmstxt_gen.parsers.php import PHPParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
@@ -34,6 +35,7 @@ __all__ = [
     "RustParser",
     "TypeScriptParser",
     "ScalaParser",
+    "KotlinParser",
 ]
 
 
@@ -63,4 +65,6 @@ def parser_for(language: str) -> BaseParser | None:
         return SwiftParser()
     if language == "elixir":
         return ElixirParser()
+    if language == "kotlin":
+        return KotlinParser()
     return None
