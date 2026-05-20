@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from llmstxt_gen.config import LlmsTxtConfig
-from llmstxt_gen.walker import _load_gitignore, detect_language, walk_repository
+from llmstxt_gen.walker import _is_binary, _load_gitignore, detect_language, walk_repository
 
 
 def test_detect_language_recognises_supported_extensions() -> None:
@@ -90,6 +90,36 @@ def test_walker_skips_unicode_decode_error_files(sample_python_root: Path) -> No
     names = {f.path.name for f in files}
     assert "calculator.py" not in names
     assert "__init__.py" in names
+
+
+def test_is_binary_handles_oserror() -> None:
+    with patch("pathlib.Path.open", side_effect=OSError):
+        assert _is_binary(Path("anyfile.py")) is True
+
+
+def test_walker_skips_unreadable_files(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    readable = root / "readable.py"
+    readable.write_text("print('hello')")
+    unreadable = root / "unreadable.py"
+    unreadable.write_text("print('unreadable')")
+
+    cfg = LlmsTxtConfig(root=root, languages=["python"], extensions=[".py"])
+
+    original_open = Path.open
+
+    def side_effect(path_obj: Path, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+        if path_obj.name == "unreadable.py":
+            raise OSError("Unreadable file")
+        return original_open(path_obj, *args, **kwargs)
+
+    with patch("pathlib.Path.open", side_effect=side_effect, autospec=True):
+        files = list(walk_repository(cfg))
+
+    names = {f.path.name for f in files}
+    assert "readable.py" in names
+    assert "unreadable.py" not in names
 
 
 def test_load_gitignore_no_file(tmp_path: Path) -> None:
