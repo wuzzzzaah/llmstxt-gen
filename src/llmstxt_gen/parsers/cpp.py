@@ -23,6 +23,36 @@ from llmstxt_gen.walker import SourceFile
 
 _CPP_LANGUAGE = Language(tree_sitter_cpp.language())
 
+_TEMPLATE_DECLARATION = "template_declaration"
+_COMMENT = "comment"
+_TEMPLATE_PARAMETER_LIST = "template_parameter_list"
+_CLASS_SPECIFIER = "class_specifier"
+_STRUCT_SPECIFIER = "struct_specifier"
+_UNION_SPECIFIER = "union_specifier"
+_FUNCTION_DEFINITION = "function_definition"
+_DECLARATION = "declaration"
+_ACCESS_SPECIFIER = "access_specifier"
+_FIELD_DECLARATION_LIST = "field_declaration_list"
+_FIELD_DECLARATION = "field_declaration"
+_ENUM_SPECIFIER = "enum_specifier"
+_TYPE_DEFINITION = "type_definition"
+_ALIAS_DECLARATION = "alias_declaration"
+_FUNCTION_DECLARATOR = "function_declarator"
+_POINTER_DECLARATOR = "pointer_declarator"
+_REFERENCE_DECLARATOR = "reference_declarator"
+_INIT_DECLARATOR = "init_declarator"
+_STORAGE_CLASS_SPECIFIER = "storage_class_specifier"
+_PARAMETER_DECLARATION = "parameter_declaration"
+_OPTIONAL_PARAMETER_DECLARATION = "optional_parameter_declaration"
+_BASE_CLASS_SPECIFIER = "base_class_specifier"
+_ENUMERATOR = "enumerator"
+_IDENTIFIER = "identifier"
+_FIELD_IDENTIFIER = "field_identifier"
+_TYPE_IDENTIFIER = "type_identifier"
+_OPERATOR_NAME = "operator_name"
+_QUALIFIED_IDENTIFIER = "qualified_identifier"
+_DESTRUCTOR_NAME = "destructor_name"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -32,12 +62,12 @@ def _get_doc(node: Node, source: bytes) -> str:
     """Extract Doxygen-style comments (/** ... */ and /// ...) above a node."""
     docs: list[str] = []
     target = node
-    if node.parent and node.parent.type == "template_declaration":
+    if node.parent and node.parent.type == _TEMPLATE_DECLARATION:
         target = node.parent
 
     curr = target.prev_sibling
     while curr:
-        if curr.type == "comment":
+        if curr.type == _COMMENT:
             text = _text(curr, source).strip()
             if text.startswith("/**"):
                 # Multi-line Doxygen
@@ -104,29 +134,29 @@ class CppParser(BaseParser):
         for node in nodes:
             actual_node = node
             template_params = ""
-            if node.type == "template_declaration":
+            if node.type == _TEMPLATE_DECLARATION:
                 # Find template_parameter_list
                 for child in node.children:
-                    if child.type == "template_parameter_list":
+                    if child.type == _TEMPLATE_PARAMETER_LIST:
                         template_params = _text(child, source)
                     elif child.type in (
-                        "class_specifier",
-                        "struct_specifier",
-                        "union_specifier",
-                        "function_definition",
-                        "declaration",
+                        _CLASS_SPECIFIER,
+                        _STRUCT_SPECIFIER,
+                        _UNION_SPECIFIER,
+                        _FUNCTION_DEFINITION,
+                        _DECLARATION,
                     ):
                         actual_node = child
 
-            if actual_node.type == "access_specifier":
+            if actual_node.type == _ACCESS_SPECIFIER:
                 visibility = _text(actual_node, source).strip().rstrip(":")
                 continue
 
-            if actual_node.type == "field_declaration_list":
+            if actual_node.type == _FIELD_DECLARATION_LIST:
                 self._parse_nodes(actual_node.children, source, module, current_class, visibility)
                 continue
 
-            if actual_node.type in ("function_definition", "declaration", "field_declaration"):
+            if actual_node.type in (_FUNCTION_DEFINITION, _DECLARATION, _FIELD_DECLARATION):
                 is_func = False
                 decl = actual_node.child_by_field_name("declarator")
                 if decl and self._is_function_declarator(decl):
@@ -150,7 +180,7 @@ class CppParser(BaseParser):
                 else:
                     self._handle_declaration(actual_node, source, module, current_class, visibility)
 
-            elif actual_node.type in ("class_specifier", "struct_specifier", "union_specifier"):
+            elif actual_node.type in (_CLASS_SPECIFIER, _STRUCT_SPECIFIER, _UNION_SPECIFIER):
                 cls = self._parse_class(actual_node, source, module, template_params)
                 is_private = (visibility in ("private", "protected") and current_class) or (
                     not current_class and self._is_static(node, source)
@@ -158,7 +188,7 @@ class CppParser(BaseParser):
                 if (self.include_private or not is_private) and module:
                     module.classes.append(cls)
 
-            elif actual_node.type == "enum_specifier":
+            elif actual_node.type == _ENUM_SPECIFIER:
                 cls = self._parse_enum(actual_node, source)
                 is_private = (visibility in ("private", "protected") and current_class) or (
                     not current_class and self._is_static(node, source)
@@ -166,21 +196,21 @@ class CppParser(BaseParser):
                 if (self.include_private or not is_private) and module:
                     module.classes.append(cls)
 
-            elif actual_node.type in ("type_definition", "alias_declaration"):
+            elif actual_node.type in (_TYPE_DEFINITION, _ALIAS_DECLARATION):
                 if module:
                     self._handle_type_alias(actual_node, source, module)
 
     def _is_function_declarator(self, node: Node) -> bool:
-        if node.type == "function_declarator":
+        if node.type == _FUNCTION_DECLARATOR:
             return True
-        if node.type in ("pointer_declarator", "reference_declarator", "init_declarator"):
+        if node.type in (_POINTER_DECLARATOR, _REFERENCE_DECLARATOR, _INIT_DECLARATOR):
             child = node.child_by_field_name("declarator")
             return self._is_function_declarator(child) if child else False
         return False
 
     def _is_static(self, node: Node, source: bytes) -> bool:
         for child in node.children:
-            if child.type == "storage_class_specifier" and _text(child, source) == "static":
+            if child.type == _STORAGE_CLASS_SPECIFIER and _text(child, source) == "static":
                 return True
         return False
 
@@ -189,7 +219,7 @@ class CppParser(BaseParser):
         decl_node = node.child_by_field_name("declarator")
 
         curr = decl_node
-        while curr and curr.type != "function_declarator":
+        while curr and curr.type != _FUNCTION_DECLARATOR:
             next_node = curr.child_by_field_name("declarator")
             if not next_node:
                 break
@@ -197,7 +227,7 @@ class CppParser(BaseParser):
 
         name = ""
         params: list[ParsedParameter] = []
-        if curr and curr.type == "function_declarator":
+        if curr and curr.type == _FUNCTION_DECLARATOR:
             name_node = curr.child_by_field_name("declarator")
             if name_node:
                 name = self._extract_identifier(name_node, source)
@@ -205,7 +235,7 @@ class CppParser(BaseParser):
             params_node = curr.child_by_field_name("parameters")
             if params_node:
                 for p in params_node.named_children:
-                    if p.type in ("parameter_declaration", "optional_parameter_declaration"):
+                    if p.type in (_PARAMETER_DECLARATION, _OPTIONAL_PARAMETER_DECLARATION):
                         p_name = ""
                         p_type = ""
                         p_default = ""
@@ -218,7 +248,7 @@ class CppParser(BaseParser):
                         if p_decl_node:
                             p_name = self._extract_identifier(p_decl_node, source)
 
-                        if p.type == "optional_parameter_declaration":
+                        if p.type == _OPTIONAL_PARAMETER_DECLARATION:
                             p_val_node = p.child_by_field_name("default_value")
                             if p_val_node:
                                 p_default = _text(p_val_node, source)
@@ -245,7 +275,7 @@ class CppParser(BaseParser):
         base_clause = node.child_by_field_name("base_class_clause")
         if base_clause:
             for child in base_clause.named_children:
-                if child.type == "base_class_specifier":
+                if child.type == _BASE_CLASS_SPECIFIER:
                     bases.append(_text(child, source))
 
         cls = ParsedClass(
@@ -257,7 +287,7 @@ class CppParser(BaseParser):
 
         body = node.child_by_field_name("body")
         if body:
-            default_visibility = "public" if node.type == "struct_specifier" else "private"
+            default_visibility = "public" if node.type == _STRUCT_SPECIFIER else "private"
             self._parse_class_body(body, source, module, cls, default_visibility)
 
         return cls
@@ -273,7 +303,7 @@ class CppParser(BaseParser):
         body = node.child_by_field_name("body")
         if body:
             for variant in body.named_children:
-                if variant.type == "enumerator":
+                if variant.type == _ENUMERATOR:
                     v_name = variant.child_by_field_name("name")
                     v_val = variant.child_by_field_name("value")
                     class_vars.append(
@@ -301,13 +331,19 @@ class CppParser(BaseParser):
             return
 
         for child in node.named_children:
-            if child.type in ("identifier", "field_identifier", "init_declarator", "pointer_declarator", "reference_declarator"):
+            if child.type in (
+                _IDENTIFIER,
+                _FIELD_IDENTIFIER,
+                _INIT_DECLARATOR,
+                _POINTER_DECLARATOR,
+                _REFERENCE_DECLARATOR,
+            ):
                 name = self._extract_identifier(child, source)
                 if not name:
                     continue
 
                 val = ""
-                if child.type == "init_declarator":
+                if child.type == _INIT_DECLARATOR:
                     val_node = child.child_by_field_name("value")
                     if val_node:
                         val = _text(val_node, source)
@@ -324,7 +360,7 @@ class CppParser(BaseParser):
                     module.constants.append(const)
 
     def _handle_type_alias(self, node: Node, source: bytes, module: ParsedModule) -> None:
-        if node.type == "type_definition":
+        if node.type == _TYPE_DEFINITION:
             # Find declarator which contains the name
             decl = node.child_by_field_name("declarator")
             type_node = node.child_by_field_name("type")
@@ -333,7 +369,7 @@ class CppParser(BaseParser):
                     name=self._extract_identifier(decl, source),
                     type_hint=_text(type_node, source)
                 ))
-        elif node.type == "alias_declaration":
+        elif node.type == _ALIAS_DECLARATION:
             name_node = node.child_by_field_name("name")
             type_node = node.child_by_field_name("type")
             if name_node and type_node:
@@ -343,16 +379,16 @@ class CppParser(BaseParser):
                 ))
 
     def _extract_identifier(self, node: Node, source: bytes) -> str:
-        if node.type in ("identifier", "field_identifier", "type_identifier"):
+        if node.type in (_IDENTIFIER, _FIELD_IDENTIFIER, _TYPE_IDENTIFIER):
             return _text(node, source)
 
-        if node.type == "operator_name":
+        if node.type == _OPERATOR_NAME:
             return _text(node, source)
 
-        if node.type == "qualified_identifier":
+        if node.type == _QUALIFIED_IDENTIFIER:
             return _text(node, source)
 
-        if node.type == "destructor_name":
+        if node.type == _DESTRUCTOR_NAME:
             return _text(node, source)
 
         decl = node.child_by_field_name("declarator")

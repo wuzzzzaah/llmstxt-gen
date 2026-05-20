@@ -29,6 +29,24 @@ _JS_LANGUAGE = Language(tree_sitter_javascript.language())
 _TS_LANGUAGE = Language(tree_sitter_typescript.language_typescript())
 _TSX_LANGUAGE = Language(tree_sitter_typescript.language_tsx())
 
+_COMMENT = "comment"
+_REQUIRED_PARAMETER = "required_parameter"
+_OPTIONAL_PARAMETER = "optional_parameter"
+_FORMAL_PARAMETER = "formal_parameter"
+_IDENTIFIER = "identifier"
+_METHOD_DEFINITION = "method_definition"
+_METHOD_SIGNATURE = "method_signature"
+_EXPORT_STATEMENT = "export_statement"
+_FUNCTION_DECLARATION = "function_declaration"
+_CLASS_DECLARATION = "class_declaration"
+_INTERFACE_DECLARATION = "interface_declaration"
+_TYPE_ALIAS_DECLARATION = "type_alias_declaration"
+_LEXICAL_DECLARATION = "lexical_declaration"
+_VARIABLE_DECLARATOR = "variable_declarator"
+_ARROW_FUNCTION = "arrow_function"
+_FUNCTION_EXPRESSION = "function_expression"
+_ASYNC = "async"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -37,7 +55,7 @@ def _text(node: Node, source: bytes) -> str:
 def _leading_jsdoc(node: Node, source: bytes) -> str:
     """Return the JSDoc-style block comment immediately preceding ``node``."""
     prev = node.prev_sibling
-    while prev is not None and prev.type in ("comment",):
+    while prev is not None and prev.type in (_COMMENT,):
         text = _text(prev, source).strip()
         if text.startswith("/**"):
             stripped = text[3:-2] if text.endswith("*/") else text[3:]
@@ -53,9 +71,9 @@ def _parse_ts_parameters(params_node: Node | None, source: bytes) -> list[Parsed
     out: list[ParsedParameter] = []
     for child in params_node.named_children:
         if child.type in (
-            "required_parameter",
-            "optional_parameter",
-            "formal_parameter",
+            _REQUIRED_PARAMETER,
+            _OPTIONAL_PARAMETER,
+            _FORMAL_PARAMETER,
         ):
             name = ""
             type_hint = ""
@@ -74,10 +92,10 @@ def _parse_ts_parameters(params_node: Node | None, source: bytes) -> list[Parsed
                     name=name,
                     type_hint=type_hint,
                     default=default,
-                    is_optional=child.type == "optional_parameter",
+                    is_optional=child.type == _OPTIONAL_PARAMETER,
                 )
             )
-        elif child.type == "identifier":
+        elif child.type == _IDENTIFIER:
             out.append(ParsedParameter(name=_text(child, source)))
     return out
 
@@ -101,7 +119,7 @@ def _parse_function_node(
         return_type=_function_return_type(node, source),
         docstring=_leading_jsdoc(doc_node or node, source),
         line=node.start_point[0] + 1,
-        is_async=any(c.type == "async" for c in node.children),
+        is_async=any(c.type == _ASYNC for c in node.children),
         is_private=name.startswith("_"),
     )
 
@@ -120,7 +138,7 @@ def _parse_class_node(
     methods: list[ParsedFunction] = []
     if body is not None:
         for child in body.named_children:
-            if child.type in ("method_definition", "method_signature"):
+            if child.type in (_METHOD_DEFINITION, _METHOD_SIGNATURE):
                 fn_name_node = child.child_by_field_name("name")
                 fn_name = _text(fn_name_node, source) if fn_name_node else ""
                 fn = ParsedFunction(
@@ -131,7 +149,7 @@ def _parse_class_node(
                     return_type=_function_return_type(child, source),
                     docstring=_leading_jsdoc(child, source),
                     line=child.start_point[0] + 1,
-                    is_async=any(c.type == "async" for c in child.children),
+                    is_async=any(c.type == _ASYNC for c in child.children),
                     is_private=fn_name.startswith("_") or fn_name.startswith("#"),
                 )
                 if include_private or not fn.is_private:
@@ -175,7 +193,7 @@ def _extract_express_routes(root: Node, source: bytes) -> list[ParsedRoute]:
                         handler = ""
                         if len(arg_children) >= 2:
                             last = arg_children[-1]
-                            if last.type == "identifier":
+                            if last.type == _IDENTIFIER:
                                 handler = _text(last, source)
                         routes.append(
                             ParsedRoute(
@@ -242,23 +260,23 @@ def _infer_nextjs_routes(
     exported_names: list[tuple[str, int, str]] = []  # (name, line, docstring)
 
     def _collect_exports(node: Node) -> None:
-        if node.type == "export_statement":
+        if node.type == _EXPORT_STATEMENT:
             for child in node.named_children:
-                if child.type == "function_declaration":
+                if child.type == _FUNCTION_DECLARATION:
                     name_node = child.child_by_field_name("name")
                     if name_node is not None:
                         fn_name = _text(name_node, source)
                         exported_names.append(
                             (fn_name, child.start_point[0] + 1, _leading_jsdoc(node, source))
                         )
-                elif child.type == "lexical_declaration":
+                elif child.type == _LEXICAL_DECLARATION:
                     for decl in child.named_children:
-                        if decl.type == "variable_declarator":
+                        if decl.type == _VARIABLE_DECLARATOR:
                             n = decl.child_by_field_name("name")
                             v = decl.child_by_field_name("value")
                             if n is not None and v is not None and v.type in (
-                                "arrow_function",
-                                "function_expression",
+                                _ARROW_FUNCTION,
+                                _FUNCTION_EXPRESSION,
                             ):
                                 exported_names.append(
                                     (
@@ -335,7 +353,7 @@ class TypeScriptParser(BaseParser):
         doc_node: Node | None = None,
     ) -> None:
         kind = node.type
-        if kind == "export_statement":
+        if kind == _EXPORT_STATEMENT:
             for child in node.named_children:
                 self._handle_top_level(
                     child, source, module, exported=True, doc_node=doc_node or node
@@ -345,36 +363,36 @@ class TypeScriptParser(BaseParser):
         accept = exported or self.include_private
         outer = doc_node or node
 
-        if kind == "function_declaration":
+        if kind == _FUNCTION_DECLARATION:
             fn = _parse_function_node(node, source, doc_node=outer)
             if accept:
                 module.functions.append(fn)
-        elif kind == "class_declaration":
+        elif kind == _CLASS_DECLARATION:
             cls = _parse_class_node(node, source, self.include_private, doc_node=outer)
             if accept:
                 module.classes.append(cls)
-        elif kind in ("interface_declaration", "type_alias_declaration"):
+        elif kind in (_INTERFACE_DECLARATION, _TYPE_ALIAS_DECLARATION):
             name_node = node.child_by_field_name("name")
             name = _text(name_node, source) if name_node else ""
             if accept:
                 module.constants.append(
                     ParsedConstant(
                         name=name,
-                        type_hint="interface" if kind == "interface_declaration" else "type",
+                        type_hint="interface" if kind == _INTERFACE_DECLARATION else "type",
                         value=_text(node, source),
                     )
                 )
-        elif kind == "lexical_declaration":
+        elif kind == _LEXICAL_DECLARATION:
             for declarator in node.named_children:
-                if declarator.type != "variable_declarator":
+                if declarator.type != _VARIABLE_DECLARATOR:
                     continue
                 name_node = declarator.child_by_field_name("name")
                 type_node = declarator.child_by_field_name("type")
                 value_node = declarator.child_by_field_name("value")
                 name = _text(name_node, source) if name_node else ""
                 if value_node is not None and value_node.type in (
-                    "arrow_function",
-                    "function_expression",
+                    _ARROW_FUNCTION,
+                    _FUNCTION_EXPRESSION,
                 ):
                     fn = _parse_function_node(
                         value_node, source, name_override=name, doc_node=outer
