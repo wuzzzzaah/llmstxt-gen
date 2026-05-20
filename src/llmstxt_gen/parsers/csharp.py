@@ -18,10 +18,38 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
 _CS_LANGUAGE = Language(tree_sitter_c_sharp.language())
+
+_COMMENT = "comment"
+_MODIFIER = "modifier"
+_INTERFACE_DECLARATION = "interface_declaration"
+_ATTRIBUTE_LIST = "attribute_list"
+_ATTRIBUTE = "attribute"
+_TYPE_PARAMETER_CONSTRAINTS_CLAUSE = "type_parameter_constraints_clause"
+_PARAMETER = "parameter"
+_NAMESPACE_DECLARATION = "namespace_declaration"
+_FILE_SCOPED_NAMESPACE_DECLARATION = "file_scoped_namespace_declaration"
+_USING_DIRECTIVE = "using_directive"
+_CLASS_DECLARATION = "class_declaration"
+_STRUCT_DECLARATION = "struct_declaration"
+_RECORD_DECLARATION = "record_declaration"
+_ENUM_DECLARATION = "enum_declaration"
+_METHOD_DECLARATION = "method_declaration"
+_PROPERTY_DECLARATION = "property_declaration"
+_FIELD_DECLARATION = "field_declaration"
+_EVENT_DECLARATION = "event_declaration"
+_EVENT_FIELD_DECLARATION = "event_field_declaration"
+_IDENTIFIER = "identifier"
+_GENERIC_NAME = "generic_name"
+_QUALIFIED_NAME = "qualified_name"
+_PARAMETER_LIST = "parameter_list"
+_ENUM_MEMBER_DECLARATION = "enum_member_declaration"
+_VARIABLE_DECLARATION = "variable_declaration"
+_VARIABLE_DECLARATOR = "variable_declarator"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -31,10 +59,10 @@ def _text(node: Node, source: bytes) -> str:
 def _get_xml_doc(node: Node, source: bytes) -> str:
     docs: list[str] = []
     curr = node.prev_sibling
-    while curr and curr.type == "comment":
+    while curr and curr.type == _COMMENT:
         text = _text(curr, source).strip()
         if text.startswith("///"):
-            docs.insert(0, text[3:].strip())
+            docs.insert(0, clean_docstring(text))
         curr = curr.prev_sibling
     return "\n".join(docs).strip()
 
@@ -42,7 +70,7 @@ def _get_xml_doc(node: Node, source: bytes) -> str:
 def _get_modifiers(node: Node, source: bytes) -> list[str]:
     mods = []
     for child in node.children:
-        if child.type == "modifier":
+        if child.type == _MODIFIER:
             # Some modifiers are nested nodes
             mods.append(_text(child, source))
     return mods
@@ -50,7 +78,7 @@ def _get_modifiers(node: Node, source: bytes) -> list[str]:
 
 def _is_exported(node: Node, source: bytes) -> bool:
     # Interface members are implicitly public
-    if node.parent and node.parent.parent and node.parent.parent.type == "interface_declaration":
+    if node.parent and node.parent.parent and node.parent.parent.type == _INTERFACE_DECLARATION:
         return True
     mods = _get_modifiers(node, source)
     return "public" in mods or "protected" in mods
@@ -59,9 +87,9 @@ def _is_exported(node: Node, source: bytes) -> bool:
 def _get_attributes(node: Node, source: bytes) -> list[str]:
     attrs = []
     for child in node.children:
-        if child.type == "attribute_list":
+        if child.type == _ATTRIBUTE_LIST:
             for attr in child.named_children:
-                if attr.type == "attribute":
+                if attr.type == _ATTRIBUTE:
                     attrs.append(_text(attr, source))
     return attrs
 
@@ -69,7 +97,7 @@ def _get_attributes(node: Node, source: bytes) -> list[str]:
 def _get_type_constraints(node: Node, source: bytes) -> str:
     constraints = []
     for child in node.children:
-        if child.type == "type_parameter_constraints_clause":
+        if child.type == _TYPE_PARAMETER_CONSTRAINTS_CLAUSE:
             constraints.append(_text(child, source))
     return " ".join(constraints)
 
@@ -77,7 +105,7 @@ def _get_type_constraints(node: Node, source: bytes) -> str:
 def _parse_parameters(node: Node, source: bytes) -> list[ParsedParameter]:
     params = []
     for child in node.named_children:
-        if child.type == "parameter":
+        if child.type == _PARAMETER:
             type_node = child.child_by_field_name("type")
             name_node = child.child_by_field_name("name")
             default_node = child.child_by_field_name("default")
@@ -122,9 +150,9 @@ class CSharpParser(BaseParser):
         self, node: Node, source: bytes, parent: ParsedModule | ParsedClass
     ) -> None:
         for child in node.named_children:
-            if child.type in ("namespace_declaration", "file_scoped_namespace_declaration"):
+            if child.type in (_NAMESPACE_DECLARATION, _FILE_SCOPED_NAMESPACE_DECLARATION):
                 # recurse into namespace body or siblings for file_scoped
-                if child.type == "namespace_declaration":
+                if child.type == _NAMESPACE_DECLARATION:
                     body = child.child_by_field_name("body")
                     if body:
                         self._collect_members(body, source, parent)
@@ -133,7 +161,7 @@ class CSharpParser(BaseParser):
                     # In tree-sitter-c-sharp, the members are usually siblings or children
                     # Actually for file_scoped, members ARE children of the declaration node in TS
                     for grandchild in child.named_children:
-                        if grandchild.type not in ("modifier", "identifier", "using_directive"):
+                        if grandchild.type not in (_MODIFIER, _IDENTIFIER, _USING_DIRECTIVE):
                             self._collect_members_node(grandchild, source, parent)
             else:
                 self._collect_members_node(child, source, parent)
@@ -142,29 +170,29 @@ class CSharpParser(BaseParser):
         self, child: Node, source: bytes, parent: ParsedModule | ParsedClass
     ) -> None:
         if child.type in (
-            "class_declaration",
-            "struct_declaration",
-            "interface_declaration",
-            "record_declaration",
+            _CLASS_DECLARATION,
+            _STRUCT_DECLARATION,
+            _INTERFACE_DECLARATION,
+            _RECORD_DECLARATION,
         ):
             if self.include_private or _is_exported(child, source):
                 self._parse_class_like(child, source, parent)
-        elif child.type == "enum_declaration":
+        elif child.type == _ENUM_DECLARATION:
             if self.include_private or _is_exported(child, source):
                 self._parse_enum(child, source, parent)
-        elif child.type == "method_declaration":
+        elif child.type == _METHOD_DECLARATION:
             if self.include_private or _is_exported(child, source):
                 self._parse_method(child, source, parent)
-        elif child.type == "property_declaration":
+        elif child.type == _PROPERTY_DECLARATION:
             if self.include_private or _is_exported(child, source):
                 self._parse_property(child, source, parent)
-        elif child.type == "field_declaration":
+        elif child.type == _FIELD_DECLARATION:
             if self.include_private or _is_exported(child, source):
                 self._parse_field(child, source, parent)
-        elif child.type == "event_declaration":
+        elif child.type == _EVENT_DECLARATION:
             if self.include_private or _is_exported(child, source):
                 self._parse_event(child, source, parent)
-        elif child.type == "event_field_declaration" and (
+        elif child.type == _EVENT_FIELD_DECLARATION and (
             self.include_private or _is_exported(child, source)
         ):
             self._parse_field(child, source, parent, is_event=True)
@@ -189,7 +217,7 @@ class CSharpParser(BaseParser):
             base_list = node.child_by_field_name("base_list")
             if base_list:
                 for base in base_list.named_children:
-                    if base.type in ("identifier", "generic_name", "qualified_name"):
+                    if base.type in (_IDENTIFIER, _GENERIC_NAME, _QUALIFIED_NAME):
                         bases.append(_text(base, source))
 
             target_class = ParsedClass(
@@ -207,10 +235,10 @@ class CSharpParser(BaseParser):
             self._collect_members(body, source, target_class)
 
         # Handle record positional parameters as class_vars
-        if node.type == "record_declaration":
+        if node.type == _RECORD_DECLARATION:
             params_node = None
             for child in node.children:
-                if child.type == "parameter_list":
+                if child.type == _PARAMETER_LIST:
                     params_node = child
                     break
             if params_node:
@@ -231,7 +259,7 @@ class CSharpParser(BaseParser):
         body = node.child_by_field_name("body")
         if body:
             for member in body.named_children:
-                if member.type == "enum_member_declaration":
+                if member.type == _ENUM_MEMBER_DECLARATION:
                     m_name_node = member.child_by_field_name("name")
                     m_name = _text(m_name_node, source) if m_name_node else ""
                     enum_class.class_vars.append(ParsedConstant(name=m_name))
@@ -303,7 +331,7 @@ class CSharpParser(BaseParser):
         var_decl = node.child_by_field_name("declaration")
         if not var_decl:
             for child in node.children:
-                if child.type == "variable_declaration":
+                if child.type == _VARIABLE_DECLARATION:
                     var_decl = child
                     break
 
@@ -312,7 +340,7 @@ class CSharpParser(BaseParser):
             type_hint = _text(type_node, source) if type_node else ""
 
             for child in var_decl.named_children:
-                if child.type == "variable_declarator":
+                if child.type == _VARIABLE_DECLARATOR:
                     name_node = child.child_by_field_name("name")
                     name = _text(name_node, source) if name_node else ""
 

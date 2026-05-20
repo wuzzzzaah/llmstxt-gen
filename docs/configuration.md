@@ -1,90 +1,54 @@
 # Configuration
 
-llmstxt-gen is designed to work with zero configuration, but you can customize its behavior via `pyproject.toml`.
+llmstxt-gen reads all of its options from your `pyproject.toml` under the `[tool.llmstxt_gen]` table. Every option has a default, so you can run `llmstxt-gen generate` against any project without writing config first.
 
-## Configuration file
+## Project metadata
 
-Add a `[tool.llmstxt_gen]` section to your `pyproject.toml` at the root of your project:
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | directory name | Project name shown in the top-level heading. Falls back to the `[project].name` field when set. |
+| `description` | string | `""` | One-line description rendered as a Markdown blockquote. Falls back to `[project].description`. |
+| `version` | string | `""` | Project version. Reserved for use in future templates. |
+
+## File selection
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `include` | list of strings | empty (entire repo) | Directories or glob patterns to scan. When set, only files matching one of these patterns are considered. |
+| `exclude` | list of strings | empty | Additional patterns to skip, evaluated after the `.gitignore` rules already in effect. |
+| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".java", ".cs", ".scala", ".sc"]` | File extensions to consider. Files with any other extension are ignored. |
+
+Patterns use the same syntax as `.gitignore` (gitwildmatch).
+
+## Output files
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `output_dir` | string | `"."` | Directory to write output files into, relative to the project root. |
+| `output_summary` | string | `"llms.txt"` | Filename for the compact summary file. |
+| `output_full` | string | `"llms-full.txt"` | Filename for the detailed reference. |
+
+## Parsing behavior
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `include_private` | bool | `false` | Include private or non-exported symbols. |
+| `max_tokens_summary` | int | `8000` | Soft token budget for the summary file. The pruner reduces output to fit. |
+| `max_tokens_full` | int | `32000` | Soft token budget for the full file. |
+| `languages` | list of strings | `["python", "typescript", "go", "ruby", "java", "csharp", "rust", "scala"]` | Parsers to activate. Supported values: `python`, `typescript`, `go`, `ruby`, `java`, `csharp`, `rust`, `scala`. |
+
+## A worked example
 
 ```toml
 [tool.llmstxt_gen]
-name = "my-project"
-description = "A short description of my project"
-include = ["src/"]
-exclude = ["src/internal/"]
+name = "my-library"
+description = "A small library for doing the thing."
+include = ["src/my_library/"]
+exclude = ["src/my_library/_vendored/"]
 include_private = false
+max_tokens_summary = 6000
+max_tokens_full = 24000
+languages = ["python"]
 ```
 
-## Options
-
-### `name`
-- **Type**: `string`
-- **Default**: The name of the project directory.
-- **Description**: The project name used in the `llms.txt` header.
-
-### `description`
-- **Type**: `string`
-- **Default**: `""`
-- **Description**: A short description of the project, displayed as a blockquote.
-
-### `version`
-- **Type**: `string`
-- **Default**: `""`
-- **Description**: The project version.
-
-### `include`
-- **Type**: `list of strings`
-- **Default**: `[]` (includes all files with supported extensions)
-- **Description**: A list of glob patterns for files or directories to include.
-
-### `exclude`
-- **Type**: `list of strings`
-- **Default**: `[]`
-- **Description**: A list of glob patterns for files or directories to exclude. Always excludes `.git`, `node_modules`, etc.
-
-### `extensions`
-- **Type**: `list of strings`
-- **Default**: `[".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".kt", ".kts"]`
-- **Description**: File extensions to scan.
-
-### `output_dir`
-- **Type**: `string`
-- **Default**: `"."`
-- **Description**: The directory where output files will be written.
-
-### `output_summary`
-- **Type**: `string`
-- **Default**: `"llms.txt"`
-- **Description**: The filename for the compact summary.
-
-### `output_full`
-- **Type**: `string`
-- **Default**: `"llms-full.txt"`
-- **Description**: The filename for the detailed reference.
-
-### `include_private`
-- **Type**: `boolean`
-- **Default**: `false`
-- **Description**: Whether to include symbols considered private (e.g., prefixed with `_` in Python, or not exported in TypeScript/Go).
-
-### `max_tokens_summary`
-- **Type**: `integer`
-- **Default**: `8000`
-- **Description**: Token limit for the summary file.
-
-### `max_tokens_full`
-- **Type**: `integer`
-- **Default**: `32000`
-- **Description**: Token limit for the full reference file.
-
-### `languages`
-- **Type**: `list of strings`
-- **Default**: `["python", "typescript", "go", "kotlin"]`
-- **Description**: The language parsers to activate.
-
-## Supported languages
-
-- **Python**: Parses `.py` files.
-- **JavaScript/TypeScript**: Parses `.js`, `.jsx`, `.ts`, `.tsx` files.
-- **Go**: Parses `.go` files.
-- **Kotlin**: Parses `.kt`, `.kts` files.
+This config scans only `src/my_library/`, skips the vendored directory, omits private symbols, and gives the renderer tighter token budgets than the defaults.

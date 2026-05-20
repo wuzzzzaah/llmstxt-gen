@@ -22,6 +22,11 @@ DEFAULT_EXTENSIONS: tuple[str, ...] = (
     ".rb",
     ".java",
     ".cs",
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
 )
 DEFAULT_LANGUAGES: tuple[str, ...] = (
     "python",
@@ -31,6 +36,23 @@ DEFAULT_LANGUAGES: tuple[str, ...] = (
     "ruby",
     "java",
     "csharp",
+    "cpp",
+)
+DEFAULT_EXCLUDE: tuple[str, ...] = (
+    # Test files — rarely useful in agent context and produce empty sections
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.test.js",
+    "**/*.test.jsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.spec.js",
+    "**/*.spec.jsx",
+    "**/*.test.py",
+    "**/test_*.py",
+    "**/__tests__/**",
+    "**/tests/**",
+    "**/test/**",
 )
 
 
@@ -42,7 +64,7 @@ class LlmsTxtConfig:
     description: str = ""
     version: str = ""
     include: list[str] = field(default_factory=list)
-    exclude: list[str] = field(default_factory=list)
+    exclude: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDE))
     extensions: list[str] = field(default_factory=lambda: list(DEFAULT_EXTENSIONS))
     output_dir: str = "."
     output_summary: str = "llms.txt"

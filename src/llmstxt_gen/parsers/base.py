@@ -20,6 +20,7 @@ class ParsedParameter:
     name: str
     type_hint: str = ""
     default: str = ""
+    is_optional: bool = False
 
 
 @dataclass
@@ -35,6 +36,7 @@ class ParsedFunction:
     is_private: bool = False
     is_property: bool = False
     decorators: list[str] = field(default_factory=list)
+    _heads_count: int = 1
 
 
 @dataclass
@@ -59,6 +61,17 @@ class ParsedClass:
 
 
 @dataclass
+class ParsedRoute:
+    """An HTTP route handler (Express, Next.js, etc.)."""
+
+    method: str
+    path: str
+    handler: str = ""
+    line: int = 0
+    docstring: str = ""
+
+
+@dataclass
 class ParsedModule:
     """A single source file converted to a structured representation."""
 
@@ -69,6 +82,52 @@ class ParsedModule:
     functions: list[ParsedFunction] = field(default_factory=list)
     classes: list[ParsedClass] = field(default_factory=list)
     constants: list[ParsedConstant] = field(default_factory=list)
+    routes: list[ParsedRoute] = field(default_factory=list)
+
+
+def clean_docstring(raw: str) -> str:
+    """Clean a docstring by removing comment markers and normalizing whitespace.
+
+    Handles:
+    - Javadoc/JSDoc/Doxygen: /** ... */
+    - Block comments: /* ... */
+    - Triple-slash: /// ... or //! ...
+    - Double-slash: // ...
+    - Hash: # ...
+
+    Leading asterisks on each line are also removed.
+    """
+    if not raw:
+        return ""
+
+    raw = raw.strip()
+
+    # Handle block comments markers at start/end
+    if raw.startswith("/**"):
+        raw = raw[3:]
+    elif raw.startswith("/*"):
+        raw = raw[2:]
+
+    if raw.endswith("*/"):
+        raw = raw[:-2]
+
+    lines = raw.splitlines()
+    cleaned = []
+    for line in lines:
+        line = line.strip()
+        # Remove common comment markers
+        if line.startswith("///") or line.startswith("//!"):
+            line = line[3:]
+        elif line.startswith("//"):
+            line = line[2:]
+        elif line.startswith("#"):
+            line = line[1:]
+        elif line.startswith("*"):
+            line = line.lstrip("*")
+
+        cleaned.append(line.strip())
+
+    return "\n".join(cleaned).strip()
 
 
 class BaseParser(ABC):

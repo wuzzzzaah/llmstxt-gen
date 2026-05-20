@@ -19,10 +19,32 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
 _JAVA_LANGUAGE = Language(tree_sitter_java.language())
+
+_COMMENT = "comment"
+_BLOCK_COMMENT = "block_comment"
+_LINE_COMMENT = "line_comment"
+_INTERFACE_DECLARATION = "interface_declaration"
+_MODIFIERS = "modifiers"
+_MARKER_ANNOTATION = "marker_annotation"
+_ANNOTATION = "annotation"
+_FORMAL_PARAMETER = "formal_parameter"
+_SPREAD_PARAMETER = "spread_parameter"
+_CONSTRUCTOR_DECLARATION = "constructor_declaration"
+_VOID_TYPE = "void_type"
+_VARIABLE_DECLARATOR = "variable_declarator"
+_PACKAGE_DECLARATION = "package_declaration"
+_CLASS_DECLARATION = "class_declaration"
+_ENUM_DECLARATION = "enum_declaration"
+_RECORD_DECLARATION = "record_declaration"
+_ANNOTATION_TYPE_DECLARATION = "annotation_type_declaration"
+_METHOD_DECLARATION = "method_declaration"
+_FIELD_DECLARATION = "field_declaration"
+_ENUM_CONSTANT = "enum_constant"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -34,17 +56,11 @@ def _get_javadoc(node: Node, source: bytes) -> str:
     prev = node.prev_sibling
     # Tree-sitter-java often puts comments as siblings.
     # We look for block_comment that starts with /**
-    while prev and prev.type in ("comment", "block_comment", "line_comment"):
-        if prev.type == "block_comment":
+    while prev and prev.type in (_COMMENT, _BLOCK_COMMENT, _LINE_COMMENT):
+        if prev.type == _BLOCK_COMMENT:
             text = _text(prev, source).strip()
             if text.startswith("/**"):
-                # It's a Javadoc
-                lines = text[3:-2].strip().splitlines()
-                processed = []
-                for line in lines:
-                    line = line.strip().lstrip("*").strip()
-                    processed.append(line)
-                return "\n".join(processed).strip()
+                return clean_docstring(text)
         prev = prev.prev_sibling
     return ""
 
@@ -54,13 +70,13 @@ def _is_exported(node: Node, source: bytes, parent_type: str | None = None) -> b
 
     In interfaces, members are public by default.
     """
-    if parent_type == "interface_declaration":
+    if parent_type == _INTERFACE_DECLARATION:
         return True
 
     # Find modifiers node. It's usually a named child of the declaration.
     modifiers = None
     for child in node.children:
-        if child.type == "modifiers":
+        if child.type == _MODIFIERS:
             modifiers = child
             break
 
@@ -75,7 +91,7 @@ def _is_exported(node: Node, source: bytes, parent_type: str | None = None) -> b
 
 def _get_modifiers(node: Node) -> Node | None:
     for child in node.children:
-        if child.type == "modifiers":
+        if child.type == _MODIFIERS:
             return child
     return None
 
@@ -85,7 +101,7 @@ def _get_annotations(node: Node, source: bytes) -> list[str]:
     annotations = []
     if modifiers:
         for child in modifiers.children:
-            if child.type in ("marker_annotation", "annotation"):
+            if child.type in (_MARKER_ANNOTATION, _ANNOTATION):
                 # For marker_annotation: @Deprecated
                 # For annotation: @SuppressWarnings("...")
                 annotations.append(_text(child, source))
@@ -97,7 +113,7 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
         return []
     params = []
     for child in params_node.named_children:
-        if child.type == "formal_parameter":
+        if child.type == _FORMAL_PARAMETER:
             type_node = child.child_by_field_name("type")
             name_node = child.child_by_field_name("name")
             params.append(
@@ -106,7 +122,7 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
                     type_hint=_text(type_node, source) if type_node else "",
                 )
             )
-        elif child.type == "spread_parameter":
+        elif child.type == _SPREAD_PARAMETER:
             # type... name
             type_node = child.child_by_field_name("type")
             name_node = child.child_by_field_name("name")
@@ -132,12 +148,12 @@ def _parse_method(node: Node, source: bytes, parent_type: str | None = None) -> 
     return_type = ""
     if type_node:
         return_type = type_params_text + _text(type_node, source)
-    elif node.type == "constructor_declaration":
+    elif node.type == _CONSTRUCTOR_DECLARATION:
         return_type = ""  # Constructors don't have return type in our model
     else:
         # Check for void_type
         for child in node.children:
-            if child.type == "void_type":
+            if child.type == _VOID_TYPE:
                 return_type = type_params_text + "void"
                 break
 
@@ -161,7 +177,7 @@ def _parse_field(node: Node, source: bytes) -> list[ParsedConstant]:
     constants = []
     for child in node.children:
         # Actually field_declaration children include modifiers, type, and variable_declarator
-        if child.type == "variable_declarator":
+        if child.type == _VARIABLE_DECLARATOR:
             name_node = child.child_by_field_name("name")
             value_node = child.child_by_field_name("value")
             constants.append(
@@ -191,7 +207,7 @@ class JavaParser(BaseParser):
         # Package docstring
         package_node = None
         for child in root.named_children:
-            if child.type == "package_declaration":
+            if child.type == _PACKAGE_DECLARATION:
                 package_node = child
                 break
 
@@ -204,11 +220,11 @@ class JavaParser(BaseParser):
 
         for child in root.named_children:
             if child.type in (
-                "class_declaration",
-                "interface_declaration",
-                "enum_declaration",
-                "record_declaration",
-                "annotation_type_declaration",
+                _CLASS_DECLARATION,
+                _INTERFACE_DECLARATION,
+                _ENUM_DECLARATION,
+                _RECORD_DECLARATION,
+                _ANNOTATION_TYPE_DECLARATION,
             ):
                 self._parse_class_to_module(child, source, module)
 
@@ -225,7 +241,7 @@ class JavaParser(BaseParser):
 
         # Handle record components
         class_vars: list[ParsedConstant] = []
-        if node.type == "record_declaration":
+        if node.type == _RECORD_DECLARATION:
             params_node = node.child_by_field_name("parameters")
             if params_node:
                 for param in _parse_parameters(params_node, source):
@@ -263,23 +279,23 @@ class JavaParser(BaseParser):
         body = node.child_by_field_name("body")
         if body:
             for member in body.named_children:
-                if member.type == "method_declaration" or member.type == "constructor_declaration":
+                if member.type == _METHOD_DECLARATION or member.type == _CONSTRUCTOR_DECLARATION:
                     fn = _parse_method(member, source, parent_type=node.type)
                     if self.include_private or not fn.is_private:
                         cls.methods.append(fn)
-                elif member.type == "field_declaration":
+                elif member.type == _FIELD_DECLARATION:
                     if self.include_private or _is_exported(member, source, parent_type=node.type):
                         cls.class_vars.extend(_parse_field(member, source))
                 elif member.type in (
-                    "class_declaration",
-                    "interface_declaration",
-                    "enum_declaration",
-                    "record_declaration",
-                    "annotation_type_declaration",
+                    _CLASS_DECLARATION,
+                    _INTERFACE_DECLARATION,
+                    _ENUM_DECLARATION,
+                    _RECORD_DECLARATION,
+                    _ANNOTATION_TYPE_DECLARATION,
                 ):
                     # Recursive for inner classes
                     self._parse_class_to_module(member, source, module, prefix=f"{name}.")
-                elif member.type == "enum_constant":
+                elif member.type == _ENUM_CONSTANT:
                     # For enums
                     # enum_constant has name field
                     name_node_ec = member.child_by_field_name("name")

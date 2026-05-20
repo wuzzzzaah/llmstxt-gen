@@ -25,6 +25,19 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".rb": "ruby",
     ".java": "java",
     ".cs": "csharp",
+    ".c": "cpp",
+    ".h": "cpp",
+    ".cpp": "cpp",
+    ".hpp": "cpp",
+    ".cc": "cpp",
+    ".scala": "scala",
+    ".sc": "scala",
+    ".php": "php",
+    ".swift": "swift",
+    ".ex": "elixir",
+    ".exs": "elixir",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
 }
 
 ALWAYS_EXCLUDED = {

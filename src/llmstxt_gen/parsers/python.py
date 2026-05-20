@@ -24,6 +24,21 @@ from llmstxt_gen.walker import SourceFile
 
 _PY_LANGUAGE = Language(tree_sitter_python.language())
 
+_EXPRESSION_STATEMENT = "expression_statement"
+_STRING = "string"
+_IDENTIFIER = "identifier"
+_TYPED_PARAMETER = "typed_parameter"
+_DEFAULT_PARAMETER = "default_parameter"
+_TYPED_DEFAULT_PARAMETER = "typed_default_parameter"
+_LIST_SPLAT_PATTERN = "list_splat_pattern"
+_DICTIONARY_SPLAT_PATTERN = "dictionary_splat_pattern"
+_DECORATED_DEFINITION = "decorated_definition"
+_DECORATOR = "decorator"
+_FUNCTION_DEFINITION = "function_definition"
+_CLASS_DEFINITION = "class_definition"
+_ASSIGNMENT = "assignment"
+_ASYNC = "async"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -39,14 +54,14 @@ def _extract_string_literal(node: Node, source: bytes) -> str:
         if raw.startswith(quote) and raw.endswith(quote) and len(raw) >= 2 * len(quote):
             raw = raw[len(quote) : -len(quote)]
             break
-    return raw.strip()
+    return raw
 
 
 def _module_docstring(root: Node, source: bytes) -> str:
     for child in root.named_children:
-        if child.type == "expression_statement":
+        if child.type == _EXPRESSION_STATEMENT:
             expr = child.named_children[0] if child.named_children else None
-            if expr is not None and expr.type == "string":
+            if expr is not None and expr.type == _STRING:
                 return _extract_string_literal(expr, source)
         break
     return ""
@@ -57,9 +72,9 @@ def _function_docstring(func_node: Node, source: bytes) -> str:
     if body is None:
         return ""
     for child in body.named_children:
-        if child.type == "expression_statement":
+        if child.type == _EXPRESSION_STATEMENT:
             expr = child.named_children[0] if child.named_children else None
-            if expr is not None and expr.type == "string":
+            if expr is not None and expr.type == _STRING:
                 return _extract_string_literal(expr, source)
         break
     return ""
@@ -71,9 +86,9 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
     params: list[ParsedParameter] = []
     for child in params_node.named_children:
         kind = child.type
-        if kind == "identifier":
+        if kind == _IDENTIFIER:
             params.append(ParsedParameter(name=_text(child, source)))
-        elif kind == "typed_parameter":
+        elif kind == _TYPED_PARAMETER:
             name_node = child.named_children[0] if child.named_children else None
             type_node = _child_by_field(child, "type")
             params.append(
@@ -82,7 +97,7 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
                     type_hint=_text(type_node, source) if type_node else "",
                 )
             )
-        elif kind == "default_parameter":
+        elif kind == _DEFAULT_PARAMETER:
             name_node = _child_by_field(child, "name")
             value_node = _child_by_field(child, "value")
             params.append(
@@ -91,7 +106,7 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
                     default=_text(value_node, source) if value_node else "",
                 )
             )
-        elif kind == "typed_default_parameter":
+        elif kind == _TYPED_DEFAULT_PARAMETER:
             name_node = _child_by_field(child, "name")
             type_node = _child_by_field(child, "type")
             value_node = _child_by_field(child, "value")
@@ -102,8 +117,8 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
                     default=_text(value_node, source) if value_node else "",
                 )
             )
-        elif kind in ("list_splat_pattern", "dictionary_splat_pattern"):
-            prefix = "*" if kind == "list_splat_pattern" else "**"
+        elif kind in (_LIST_SPLAT_PATTERN, _DICTIONARY_SPLAT_PATTERN):
+            prefix = "*" if kind == _LIST_SPLAT_PATTERN else "**"
             inner = child.named_children[0] if child.named_children else None
             base = _text(inner, source) if inner else ""
             params.append(ParsedParameter(name=f"{prefix}{base}"))
@@ -113,10 +128,10 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
 def _decorator_names(node: Node, source: bytes) -> list[str]:
     decorators: list[str] = []
     parent = node.parent
-    if parent is None or parent.type != "decorated_definition":
+    if parent is None or parent.type != _DECORATED_DEFINITION:
         return decorators
     for child in parent.named_children:
-        if child.type == "decorator":
+        if child.type == _DECORATOR:
             inner = child.named_children[0] if child.named_children else None
             if inner is not None:
                 decorators.append(_text(inner, source))
@@ -135,7 +150,7 @@ def _parse_function(node: Node, source: bytes) -> ParsedFunction:
         return_type=_text(return_node, source) if return_node else "",
         docstring=_function_docstring(node, source),
         line=node.start_point[0] + 1,
-        is_async=any(c.type == "async" for c in node.children),
+        is_async=any(c.type == _ASYNC for c in node.children),
         is_private=name.startswith("_") and not name.startswith("__"),
         is_property="property" in decorators,
         decorators=decorators,
@@ -157,21 +172,21 @@ def _parse_class(node: Node, source: bytes, include_private: bool) -> ParsedClas
     if body is not None:
         first = True
         for child in body.named_children:
-            if first and child.type == "expression_statement":
+            if first and child.type == _EXPRESSION_STATEMENT:
                 expr = child.named_children[0] if child.named_children else None
-                if expr is not None and expr.type == "string":
+                if expr is not None and expr.type == _STRING:
                     docstring = _extract_string_literal(expr, source)
             first = False
             target = child
-            if child.type == "decorated_definition":
+            if child.type == _DECORATED_DEFINITION:
                 inner = _child_by_field(child, "definition")
                 if inner is not None:
                     target = inner
-            if target.type == "function_definition":
+            if target.type == _FUNCTION_DEFINITION:
                 fn = _parse_function(target, source)
                 if include_private or not fn.is_private:
                     methods.append(fn)
-            elif child.type == "expression_statement":
+            elif child.type == _EXPRESSION_STATEMENT:
                 _maybe_class_var(child, source, class_vars)
     return ParsedClass(
         name=name,
@@ -187,7 +202,7 @@ def _maybe_class_var(stmt: Node, source: bytes, out: list[ParsedConstant]) -> No
     if not stmt.named_children:
         return
     inner = stmt.named_children[0]
-    if inner.type != "assignment":
+    if inner.type != _ASSIGNMENT:
         return
     target = _child_by_field(inner, "left")
     type_node = _child_by_field(inner, "type")
@@ -230,19 +245,19 @@ class PythonParser(BaseParser):
 
         for child in root.named_children:
             target = child
-            if child.type == "decorated_definition":
+            if child.type == _DECORATED_DEFINITION:
                 inner = _child_by_field(child, "definition")
                 if inner is not None:
                     target = inner
-            if target.type == "function_definition":
+            if target.type == _FUNCTION_DEFINITION:
                 fn = _parse_function(target, source)
                 if self.include_private or not fn.is_private:
                     module.functions.append(fn)
-            elif target.type == "class_definition":
+            elif target.type == _CLASS_DEFINITION:
                 cls = _parse_class(target, source, self.include_private)
                 if self.include_private or not cls.name.startswith("_"):
                     module.classes.append(cls)
-            elif child.type == "expression_statement":
+            elif child.type == _EXPRESSION_STATEMENT:
                 _maybe_module_constant(child, source, module.constants)
 
         return module

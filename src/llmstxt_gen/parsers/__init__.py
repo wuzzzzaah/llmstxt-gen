@@ -7,12 +7,18 @@ Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
 from __future__ import annotations
 
 from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
+from llmstxt_gen.parsers.cpp import CppParser
 from llmstxt_gen.parsers.csharp import CSharpParser
+from llmstxt_gen.parsers.elixir import ElixirParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
+from llmstxt_gen.parsers.kotlin import KotlinParser
+from llmstxt_gen.parsers.php import PHPParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
 from llmstxt_gen.parsers.rust import RustParser
+from llmstxt_gen.parsers.scala import ScalaParser
+from llmstxt_gen.parsers.swift import SwiftParser
 from llmstxt_gen.parsers.typescript import TypeScriptParser
 
 __all__ = [
@@ -20,6 +26,7 @@ __all__ = [
     "ParsedClass",
     "ParsedFunction",
     "ParsedModule",
+    "CppParser",
     "CSharpParser",
     "GoParser",
     "JavaParser",
@@ -27,6 +34,8 @@ __all__ = [
     "RubyParser",
     "RustParser",
     "TypeScriptParser",
+    "ScalaParser",
+    "KotlinParser",
 ]
 
 
@@ -46,4 +55,16 @@ def parser_for(language: str) -> BaseParser | None:
         return CSharpParser()
     if language == "rust":
         return RustParser()
+    if language in ("c", "cpp"):
+        return CppParser()
+    if language == "scala":
+        return ScalaParser()
+    if language == "php":
+        return PHPParser()
+    if language == "swift":
+        return SwiftParser()
+    if language == "elixir":
+        return ElixirParser()
+    if language == "kotlin":
+        return KotlinParser()
     return None
