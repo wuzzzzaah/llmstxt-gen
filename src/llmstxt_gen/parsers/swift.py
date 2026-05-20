@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -53,11 +54,8 @@ def _get_doc(node: Node, source: bytes) -> str:
     while curr:
         if curr.type in ("comment", "multiline_comment"):
             text = _text(curr, source).strip()
-            if text.startswith("///"):
-                docs.insert(0, text[3:].strip())
-            elif text.startswith("/**"):
-                inner = text[3:-2].strip()
-                docs.insert(0, inner)
+            if text.startswith("///") or text.startswith("/**"):
+                docs.insert(0, clean_docstring(text))
             elif text.startswith("//"):
                 break
         elif curr.type == "\n":
@@ -68,14 +66,10 @@ def _get_doc(node: Node, source: bytes) -> str:
 
     if node.type == "source_file":
         for child in node.children:
-            if child.type == "comment":
+            if child.type in ("comment", "multiline_comment"):
                 text = _text(child, source).strip()
-                if text.startswith("///"):
-                    docs.append(text[3:].strip())
-            elif child.type == "multiline_comment":
-                text = _text(child, source).strip()
-                if text.startswith("/**"):
-                    docs.append(text[3:-2].strip())
+                if text.startswith("///") or text.startswith("/**"):
+                    docs.append(clean_docstring(text))
             elif (
                 child.type not in ("comment", "multiline_comment", "import_declaration")
                 and child.is_named

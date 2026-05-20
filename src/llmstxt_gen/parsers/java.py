@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -38,13 +39,7 @@ def _get_javadoc(node: Node, source: bytes) -> str:
         if prev.type == "block_comment":
             text = _text(prev, source).strip()
             if text.startswith("/**"):
-                # It's a Javadoc
-                lines = text[3:-2].strip().splitlines()
-                processed = []
-                for line in lines:
-                    line = line.strip().lstrip("*").strip()
-                    processed.append(line)
-                return "\n".join(processed).strip()
+                return clean_docstring(text)
         prev = prev.prev_sibling
     return ""
 

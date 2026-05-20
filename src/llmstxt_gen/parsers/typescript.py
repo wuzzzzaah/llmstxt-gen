@@ -20,6 +20,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -38,9 +39,7 @@ def _leading_jsdoc(node: Node, source: bytes) -> str:
     while prev is not None and prev.type in ("comment",):
         text = _text(prev, source).strip()
         if text.startswith("/**"):
-            stripped = text[3:-2] if text.endswith("*/") else text[3:]
-            lines = [ln.strip().lstrip("*").strip() for ln in stripped.splitlines()]
-            return "\n".join(ln for ln in lines if ln).strip()
+            return clean_docstring(text)
         prev = prev.prev_sibling
     return ""
 

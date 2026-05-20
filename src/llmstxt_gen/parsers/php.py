@@ -18,6 +18,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -38,13 +39,7 @@ def _get_phpdoc(node: Node, source: bytes) -> str:
         if prev.type == "comment":
             text = _text(prev, source).strip()
             if text.startswith("/**"):
-                # It's a PHPDoc
-                lines = text[3:-2].strip().splitlines()
-                processed = []
-                for line in lines:
-                    line = line.strip().lstrip("*").strip()
-                    processed.append(line)
-                return "\n".join(processed).strip()
+                return clean_docstring(text)
         prev = prev.prev_sibling
     return ""
 
@@ -192,13 +187,7 @@ class PHPParser(BaseParser):
         # Look for first PHPDoc comment
         for child in root.children:
             if child.type == "comment" and _text(child, source).startswith("/**"):
-                text = _text(child, source).strip()
-                lines = text[3:-2].strip().splitlines()
-                processed = []
-                for line in lines:
-                    line = line.strip().lstrip("*").strip()
-                    processed.append(line)
-                module.docstring = "\n".join(processed).strip()
+                module.docstring = clean_docstring(_text(child, source))
                 break
             if child.type not in ("php_tag", "text_interpolation", "comment", "line_comment"):
                 break

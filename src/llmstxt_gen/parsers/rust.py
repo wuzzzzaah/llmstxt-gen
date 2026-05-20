@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -43,7 +44,7 @@ def _get_doc(node: Node, source: bytes) -> str:
     while prev and prev.type == "line_comment":
         text = _text(prev, source).strip()
         if text.startswith("///"):
-            docs.insert(0, text[3:].strip())
+            docs.insert(0, clean_docstring(text))
         prev = prev.prev_sibling
 
     # Inner doc comments (//!) might be inside the node (e.g. at the start of a module or function body)
@@ -53,7 +54,7 @@ def _get_doc(node: Node, source: bytes) -> str:
             if child.type == "line_comment":
                 text = _text(child, source).strip()
                 if text.startswith("//!"):
-                    docs.append(text[3:].strip())
+                    docs.append(clean_docstring(text))
             elif child.type not in ("line_comment", "attribute_item", "inner_attribute_item"):
                 # Stop at the first non-comment/attribute item for module docs
                 break

@@ -18,6 +18,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -39,19 +40,8 @@ def _get_doc(node: Node, source: bytes) -> str:
     while curr:
         if curr.type == "comment":
             text = _text(curr, source).strip()
-            if text.startswith("/**"):
-                # Multi-line Doxygen
-                content = text[3:-2].strip()
-                lines = []
-                for line in content.splitlines():
-                    line = line.strip()
-                    if line.startswith("*"):
-                        line = line[1:].strip()
-                    lines.append(line)
-                docs.insert(0, "\n".join(lines).strip())
-            elif text.startswith("///"):
-                # Single-line Doxygen
-                docs.insert(0, text[3:].strip())
+            if text.startswith("/**") or text.startswith("///"):
+                docs.insert(0, clean_docstring(text))
             else:
                 # Stop at regular comments
                 break
