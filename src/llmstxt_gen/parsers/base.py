@@ -35,6 +35,7 @@ class ParsedFunction:
     is_private: bool = False
     is_property: bool = False
     decorators: list[str] = field(default_factory=list)
+    _heads_count: int = 1
 
 
 @dataclass
