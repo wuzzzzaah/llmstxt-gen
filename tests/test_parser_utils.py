@@ -1,5 +1,6 @@
 from llmstxt_gen.parsers.base import clean_docstring
 
+
 def test_clean_javadoc():
     raw = """/**
  * This is a Javadoc.

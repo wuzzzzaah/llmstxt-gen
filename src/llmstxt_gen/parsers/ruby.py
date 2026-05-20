@@ -25,6 +25,25 @@ from llmstxt_gen.walker import SourceFile
 
 _RUBY_LANGUAGE = Language(tree_sitter_ruby.language())
 
+_COMMENT = "comment"
+_LINE_BREAK = "line_break"
+_IDENTIFIER = "identifier"
+_OPTIONAL_PARAMETER = "optional_parameter"
+_SPLAT_PARAMETER = "splat_parameter"
+_HASH_SPLAT_PARAMETER = "hash_splat_parameter"
+_BLOCK_PARAMETER = "block_parameter"
+_KEYWORD_PARAMETER = "keyword_parameter"
+_BODY_STATEMENT = "body_statement"
+_METHOD = "method"
+_CLASS = "class"
+_MODULE = "module"
+_ASSIGNMENT = "assignment"
+_CONSTANT = "constant"
+_CALL = "call"
+_SIMPLE_SYMBOL = "simple_symbol"
+_STRING = "string"
+_SCOPE_RESOLUTION = "scope_resolution"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -34,8 +53,8 @@ def _get_doc(node: Node, source: bytes) -> str:
     docs: list[str] = []
     curr = node.prev_sibling
     # Ruby comments are often separate nodes preceding the definition
-    while curr and curr.type in ("comment", "line_break"):
-        if curr.type == "comment":
+    while curr and curr.type in (_COMMENT, _LINE_BREAK):
+        if curr.type == _COMMENT:
             text = _text(curr, source).strip()
             if text.startswith("#"):
                 docs.insert(0, clean_docstring(text))
@@ -49,9 +68,9 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
     params: list[ParsedParameter] = []
     # params_node is often (method_parameters)
     for child in params_node.named_children:
-        if child.type == "identifier":
+        if child.type == _IDENTIFIER:
             params.append(ParsedParameter(name=_text(child, source)))
-        elif child.type == "optional_parameter":
+        elif child.type == _OPTIONAL_PARAMETER:
             name_node = child.child_by_field_name("name")
             value_node = child.child_by_field_name("value")
             params.append(
@@ -60,19 +79,19 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
                     default=_text(value_node, source) if value_node else "",
                 )
             )
-        elif child.type == "splat_parameter":
+        elif child.type == _SPLAT_PARAMETER:
             name_node = child.named_children[0] if child.named_children else None
             name = _text(name_node, source) if name_node else ""
             params.append(ParsedParameter(name=f"*{name}"))
-        elif child.type == "hash_splat_parameter":
+        elif child.type == _HASH_SPLAT_PARAMETER:
             name_node = child.named_children[0] if child.named_children else None
             name = _text(name_node, source) if name_node else ""
             params.append(ParsedParameter(name=f"**{name}"))
-        elif child.type == "block_parameter":
+        elif child.type == _BLOCK_PARAMETER:
             name_node = child.named_children[0] if child.named_children else None
             name = _text(name_node, source) if name_node else ""
             params.append(ParsedParameter(name=f"&{name}"))
-        elif child.type == "keyword_parameter":
+        elif child.type == _KEYWORD_PARAMETER:
             name_node = child.child_by_field_name("name")
             value_node = child.child_by_field_name("value")
             params.append(
@@ -121,23 +140,23 @@ class RubyParser(BaseParser):
 
         # Body might be the root or a body_statement
         target_nodes = node.named_children
-        if node.type == "body_statement":
+        if node.type == _BODY_STATEMENT:
             target_nodes = node.named_children
 
         for child in target_nodes:
-            if child.type == "method":
+            if child.type == _METHOD:
                 fn = self._parse_method(child, source, current_visibility)
                 if self.include_private or not fn.is_private:
                     functions.append(fn)
 
-            elif child.type in ("class", "module"):
+            elif child.type in (_CLASS, _MODULE):
                 cls = self._parse_class_or_module(child, source)
                 classes.append(cls)
 
-            elif child.type == "assignment":
+            elif child.type == _ASSIGNMENT:
                 left = child.child_by_field_name("left")
                 right = child.child_by_field_name("right")
-                if left and left.type == "constant":
+                if left and left.type == _CONSTANT:
                     constants.append(
                         ParsedConstant(
                             name=_text(left, source),
@@ -145,12 +164,12 @@ class RubyParser(BaseParser):
                         )
                     )
 
-            elif child.type == "identifier":
+            elif child.type == _IDENTIFIER:
                 val = _text(child, source)
                 if val in ("private", "protected", "public"):
                     current_visibility = val
 
-            elif child.type == "call":
+            elif child.type == _CALL:
                 method_name_node = child.child_by_field_name("method")
                 method_name = _text(method_name_node, source) if method_name_node else ""
 
@@ -165,7 +184,7 @@ class RubyParser(BaseParser):
                         # without more complex logic. For now, let's handle the common case.
                         # If it's a method definition as an argument:
                         for arg in args.named_children:
-                            if arg.type == "method":
+                            if arg.type == _METHOD:
                                 fn = self._parse_method(arg, source, method_name)
                                 if self.include_private or not fn.is_private:
                                     functions.append(fn)
@@ -174,9 +193,9 @@ class RubyParser(BaseParser):
                     if args:
                         docstring = _get_doc(child, source)
                         for arg in args.named_children:
-                            if arg.type in ("simple_symbol", "string"):
+                            if arg.type in (_SIMPLE_SYMBOL, _STRING):
                                 name = _text(arg, source).lstrip(":")
-                                if arg.type == "string":
+                                if arg.type == _STRING:
                                     name = name.strip("'\"")
 
                                 is_private = current_visibility != "public"
@@ -212,7 +231,7 @@ class RubyParser(BaseParser):
                     pass
 
             # Handle body_statement which can wrap children
-            if child.type == "body_statement":
+            if child.type == _BODY_STATEMENT:
                 self._parse_body(child, source, functions, classes, constants)
 
     def _parse_method(self, node: Node, source: bytes, visibility: str) -> ParsedFunction:
@@ -232,7 +251,7 @@ class RubyParser(BaseParser):
         name = _text(name_node, source) if name_node else ""
 
         bases: list[str] = []
-        if node.type == "class":
+        if node.type == _CLASS:
             superclass_node = node.child_by_field_name("superclass")
             if superclass_node:
                 # superclass node is usually '< BaseClass' or '< Scoped::BaseClass'
@@ -240,7 +259,7 @@ class RubyParser(BaseParser):
                 # superclass_node in tree-sitter-ruby often has the '<' as a child
                 # and then the constant or scope_resolution
                 for c in superclass_node.named_children:
-                    if c.type in ("constant", "scope_resolution"):
+                    if c.type in (_CONSTANT, _SCOPE_RESOLUTION):
                         bases.append(_text(c, source))
 
         methods: list[ParsedFunction] = []
@@ -251,7 +270,7 @@ class RubyParser(BaseParser):
         if body:
             # We'll do a custom pass for this body to extract bases from calls
             for child in body.named_children:
-                if child.type == "call":
+                if child.type == _CALL:
                     m_name_node = child.child_by_field_name("method")
                     m_name = _text(m_name_node, source) if m_name_node else ""
                     if m_name in ("include", "extend", "prepend"):

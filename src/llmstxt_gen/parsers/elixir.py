@@ -23,6 +23,15 @@ from llmstxt_gen.walker import SourceFile
 
 _ELIXIR_LANGUAGE = Language(tree_sitter_elixir.language())
 
+_STRING = "string"
+_QUOTED_CONTENT = "quoted_content"
+_INTERPOLATION = "interpolation"
+_CALL = "call"
+_UNARY_OPERATOR = "unary_operator"
+_DO_BLOCK = "do_block"
+_IDENTIFIER = "identifier"
+_BINARY_OPERATOR = "binary_operator"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -30,11 +39,11 @@ def _text(node: Node, source: bytes) -> str:
 
 def _get_string_content(node: Node, source: bytes) -> str:
     """Extract content from a string or heredoc."""
-    if node.type == "string":
+    if node.type == _STRING:
         # Usually it has children like " (quoted_content) "
         content = []
         for child in node.children:
-            if child.type == "quoted_content" or child.type == "interpolation":
+            if child.type == _QUOTED_CONTENT or child.type == _INTERPOLATION:
                 content.append(_text(child, source))
         return "".join(content)
     return _text(node, source).strip("\"'")
@@ -76,7 +85,7 @@ class ElixirParser(BaseParser):
         last_spec_params: list[ParsedParameter] | None = None
 
         for child in node.named_children:
-            if child.type == "call":
+            if child.type == _CALL:
                 target = child.child_by_field_name("target")
                 if not target and child.named_child_count > 0:
                     target = child.named_children[0]
@@ -108,10 +117,10 @@ class ElixirParser(BaseParser):
                     last_doc = ""
                     last_spec_params = None
 
-            elif child.type == "unary_operator":
+            elif child.type == _UNARY_OPERATOR:
                 if len(child.children) >= 2 and _text(child.children[0], source) == "@":
                     inner_call = child.children[1]
-                    if inner_call.type == "call":
+                    if inner_call.type == _CALL:
                         attr_name_node = inner_call.child_by_field_name("target")
                         if not attr_name_node and inner_call.named_child_count > 0:
                             attr_name_node = inner_call.named_children[0]
@@ -154,7 +163,7 @@ class ElixirParser(BaseParser):
 
         do_block = None
         for child in node.children:
-            if child.type == "do_block":
+            if child.type == _DO_BLOCK:
                 do_block = child
                 break
 
@@ -163,7 +172,7 @@ class ElixirParser(BaseParser):
             last_spec_params = None
 
             for child in do_block.children:
-                if child.type == "call":
+                if child.type == _CALL:
                     target = child.child_by_field_name("target")
                     if not target and child.named_child_count > 0:
                         target = child.named_children[0]
@@ -193,10 +202,10 @@ class ElixirParser(BaseParser):
                             class_vars.append(
                                 ParsedConstant(name="struct", value=_text(struct_args, source))
                             )
-                elif child.type == "unary_operator":
+                elif child.type == _UNARY_OPERATOR:
                     if len(child.children) >= 2 and _text(child.children[0], source) == "@":
                         inner_call = child.children[1]
-                        if inner_call.type == "call":
+                        if inner_call.type == _CALL:
                             attr_name_node = inner_call.child_by_field_name("target")
                             if not attr_name_node and inner_call.named_child_count > 0:
                                 attr_name_node = inner_call.named_children[0]
@@ -249,10 +258,10 @@ class ElixirParser(BaseParser):
             return None
 
         fn_call = args_node.named_children[0]
-        if fn_call.type != "call" and fn_call.type != "identifier":
+        if fn_call.type != _CALL and fn_call.type != _IDENTIFIER:
             return None
 
-        if fn_call.type == "call":
+        if fn_call.type == _CALL:
             name_node = fn_call.child_by_field_name("target")
             if not name_node and fn_call.named_child_count > 0:
                 name_node = fn_call.named_children[0]
@@ -285,9 +294,9 @@ class ElixirParser(BaseParser):
             return []
 
         op = node.named_children[0]
-        if op.type == "binary_operator":
+        if op.type == _BINARY_OPERATOR:
             left = op.named_children[0]
-            if left.type == "call":
+            if left.type == _CALL:
                 fn_args = left.child_by_field_name("arguments")
                 if not fn_args and left.named_child_count > 1:
                     fn_args = left.named_children[1]

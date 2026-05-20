@@ -25,6 +25,39 @@ from llmstxt_gen.walker import SourceFile
 
 _GO_LANGUAGE = Language(tree_sitter_go.language())
 
+_COMMENT = "comment"
+_PARAMETER_DECLARATION = "parameter_declaration"
+_IDENTIFIER = "identifier"
+_UNDERSCORE = "_"
+_VARIADIC_PARAMETER_DECLARATION = "variadic_parameter_declaration"
+_TYPE_IDENTIFIER = "type_identifier"
+_PACKAGE_IDENTIFIER = "package_identifier"
+_PACKAGE_CLAUSE = "package_clause"
+_FUNCTION_DECLARATION = "function_declaration"
+_METHOD_DECLARATION = "method_declaration"
+_TYPE_DECLARATION = "type_declaration"
+_TYPE_SPEC = "type_spec"
+_TYPE_ALIAS = "type_alias"
+_CONST_DECLARATION = "const_declaration"
+_VAR_DECLARATION = "var_declaration"
+_CONST_SPEC = "const_spec"
+_VAR_SPEC = "var_spec"
+_CONST_SPEC_LIST = "const_spec_list"
+_VAR_SPEC_LIST = "var_spec_list"
+_STRUCT_TYPE = "struct_type"
+_FIELD_DECLARATION_LIST = "field_declaration_list"
+_FIELD_DECLARATION = "field_declaration"
+_FIELD_IDENTIFIER = "field_identifier"
+_INTERFACE_TYPE = "interface_type"
+_TYPE_ELEM = "type_elem"
+_METHOD_ELEM = "method_elem"
+_METHOD_SPEC = "method_spec"
+_PARAMETER_LIST = "parameter_list"
+_QUALIFIED_TYPE = "qualified_type"
+_POINTER_TYPE = "pointer_type"
+_ARRAY_TYPE = "array_type"
+_MAP_TYPE = "map_type"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -39,7 +72,7 @@ def _get_doc(node: Node, source: bytes) -> str:
     prev = node.prev_sibling
     # In Go, comments above a declaration are doc comments.
     # They are separate nodes in tree-sitter-go.
-    while prev and prev.type == "comment":
+    while prev and prev.type == _COMMENT:
         text = _text(prev, source).strip()
         if text.startswith("//") or text.startswith("/*"):
             docs.insert(0, clean_docstring(text))
@@ -53,20 +86,22 @@ def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedPar
     params: list[ParsedParameter] = []
     # params_node is usually (parameter_list)
     for child in params_node.named_children:
-        if child.type == "parameter_declaration":
+        if child.type == _PARAMETER_DECLARATION:
             # child has (identifier) and (type_identifier) or similar
             type_node = child.child_by_field_name("type")
             type_hint = _text(type_node, source) if type_node else ""
             # Can have multiple identifiers for one type: func(a, b int)
             names = [
-                _text(n, source) for n in child.named_children if n.type in ("identifier", "_")
+                _text(n, source)
+                for n in child.named_children
+                if n.type in (_IDENTIFIER, _UNDERSCORE)
             ]
             if not names:
                 # Anonymous parameter: func(int)
                 params.append(ParsedParameter(name="", type_hint=type_hint))
             for name in names:
                 params.append(ParsedParameter(name=name, type_hint=type_hint))
-        elif child.type == "variadic_parameter_declaration":
+        elif child.type == _VARIADIC_PARAMETER_DECLARATION:
             name_node = child.child_by_field_name("name")
             type_node = child.child_by_field_name("type")
             params.append(
@@ -86,7 +121,7 @@ def _parse_result(result_node: Node | None, source: bytes) -> str:
 
 
 def _find_type_identifier(node: Node) -> Node | None:
-    if node.type in ("type_identifier", "package_identifier"):
+    if node.type in (_TYPE_IDENTIFIER, _PACKAGE_IDENTIFIER):
         return node
     for child in node.children:
         res = _find_type_identifier(child)
@@ -112,7 +147,7 @@ class GoParser(BaseParser):
         # Package docstring
         package_node = None
         for child in root.named_children:
-            if child.type == "package_clause":
+            if child.type == _PACKAGE_CLAUSE:
                 package_node = child
                 break
 
@@ -128,12 +163,12 @@ class GoParser(BaseParser):
         methods_by_receiver: dict[str, list[ParsedFunction]] = {}
 
         for child in root.named_children:
-            if child.type == "function_declaration":
+            if child.type == _FUNCTION_DECLARATION:
                 fn = self._parse_function(child, source)
                 if self.include_private or _is_exported(fn.name):
                     module.functions.append(fn)
 
-            elif child.type == "method_declaration":
+            elif child.type == _METHOD_DECLARATION:
                 fn = self._parse_method(child, source)
                 receiver_node = child.child_by_field_name("receiver")
                 if receiver_node:
@@ -143,21 +178,21 @@ class GoParser(BaseParser):
                         if self.include_private or _is_exported(fn.name):
                             methods_by_receiver.setdefault(rcv_type, []).append(fn)
 
-            elif child.type == "type_declaration":
+            elif child.type == _TYPE_DECLARATION:
                 for spec in child.named_children:
-                    if spec.type in ("type_spec", "type_alias"):
+                    if spec.type in (_TYPE_SPEC, _TYPE_ALIAS):
                         cls = self._parse_type_spec(spec, source)
                         if self.include_private or _is_exported(cls.name):
                             module.classes.append(cls)
 
-            elif child.type in ("const_declaration", "var_declaration"):
+            elif child.type in (_CONST_DECLARATION, _VAR_DECLARATION):
                 specs = []
                 for sub in child.named_children:
-                    if sub.type in ("const_spec", "var_spec"):
+                    if sub.type in (_CONST_SPEC, _VAR_SPEC):
                         specs.append(sub)
-                    elif sub.type in ("const_spec_list", "var_spec_list"):
+                    elif sub.type in (_CONST_SPEC_LIST, _VAR_SPEC_LIST):
                         for spec in sub.named_children:
-                            if spec.type in ("const_spec", "var_spec"):
+                            if spec.type in (_CONST_SPEC, _VAR_SPEC):
                                 specs.append(spec)
 
                 for spec in specs:
@@ -168,7 +203,7 @@ class GoParser(BaseParser):
 
                     # In const_spec/var_spec, identifiers are just children usually,
                     # but some might be field 'name'.
-                    names = [n for n in spec.named_children if n.type == "identifier"]
+                    names = [n for n in spec.named_children if n.type == _IDENTIFIER]
                     for name_node in names:
                         name = _text(name_node, source)
                         if self.include_private or _is_exported(name):
@@ -222,8 +257,8 @@ class GoParser(BaseParser):
         if (
             not docstring
             and node.parent
-            and node.parent.type == "type_declaration"
-            and len([c for c in node.parent.named_children if c.type == "type_spec"]) == 1
+            and node.parent.type == _TYPE_DECLARATION
+            and len([c for c in node.parent.named_children if c.type == _TYPE_SPEC]) == 1
         ):
             # Try parent if it's a single type decl: type Foo struct {}
             docstring = _get_doc(node.parent, source)
@@ -232,36 +267,36 @@ class GoParser(BaseParser):
         methods: list[ParsedFunction] = []
 
         if type_node:
-            if type_node.type == "struct_type":
+            if type_node.type == _STRUCT_TYPE:
                 # field_declaration_list is often a child of struct_type, but not necessarily by field name 'fields'
                 # in my exploration it was field_declaration_list
                 field_list = type_node.child_by_field_name("fields")
                 if not field_list:
                     # Fallback to finding by type if field_by_name failed
                     for c in type_node.children:
-                        if c.type == "field_declaration_list":
+                        if c.type == _FIELD_DECLARATION_LIST:
                             field_list = c
                             break
 
                 if field_list:
                     for field in field_list.named_children:
                         if (
-                            field.type == "field_declaration"
+                            field.type == _FIELD_DECLARATION
                             and not field.child_by_field_name("name")
-                            and not any(c.type == "field_identifier" for c in field.children)
+                            and not any(c.type == _FIELD_IDENTIFIER for c in field.children)
                         ):
                             # check for anonymous/embedded fields
                             # usually they don't have a name field
                             # If it doesn't have field_identifier, it's likely embedded
                             bases.append(_text(field, source))
-            elif type_node.type == "interface_type":
+            elif type_node.type == _INTERFACE_TYPE:
                 # In tree-sitter-go, the methods/embedded types are named children of interface_type
                 for child in type_node.named_children:
-                    if child.type == "type_elem":
+                    if child.type == _TYPE_ELEM:
                         tid = _find_type_identifier(child)
                         if tid:
                             bases.append(_text(tid, source))
-                    elif child.type in ("method_elem", "method_spec"):
+                    elif child.type in (_METHOD_ELEM, _METHOD_SPEC):
                         # Extract as a function
                         fn_name_node = child.child_by_field_name("name")
                         params_node = child.child_by_field_name("parameters")
@@ -270,12 +305,12 @@ class GoParser(BaseParser):
                         # Fallback for method_elem which might not have field names set up the same way
                         if not fn_name_node:
                             for c in child.named_children:
-                                if c.type == "field_identifier":
+                                if c.type == _FIELD_IDENTIFIER:
                                     fn_name_node = c
                                     break
                         if not params_node:
                             for c in child.named_children:
-                                if c.type == "parameter_list":
+                                if c.type == _PARAMETER_LIST:
                                     params_node = c
                                     break
                         if not result_node:
@@ -288,12 +323,12 @@ class GoParser(BaseParser):
                                 potential_result
                                 and potential_result.type
                                 in (
-                                    "type_identifier",
-                                    "parameter_list",
-                                    "qualified_type",
-                                    "pointer_type",
-                                    "array_type",
-                                    "map_type",
+                                    _TYPE_IDENTIFIER,
+                                    _PARAMETER_LIST,
+                                    _QUALIFIED_TYPE,
+                                    _POINTER_TYPE,
+                                    _ARRAY_TYPE,
+                                    _MAP_TYPE,
                                 )
                                 and potential_result != fn_name_node
                                 and potential_result != params_node
