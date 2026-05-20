@@ -7,13 +7,14 @@ Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
 from __future__ import annotations
 
 from llmstxt_gen.parsers.base import BaseParser, ParsedClass, ParsedFunction, ParsedModule
+from llmstxt_gen.parsers.cpp import CppParser
+from llmstxt_gen.parsers.scala import ScalaParser
 from llmstxt_gen.parsers.csharp import CSharpParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
 from llmstxt_gen.parsers.rust import RustParser
-from llmstxt_gen.parsers.scala import ScalaParser
 from llmstxt_gen.parsers.typescript import TypeScriptParser
 
 __all__ = [
@@ -21,14 +22,15 @@ __all__ = [
     "ParsedClass",
     "ParsedFunction",
     "ParsedModule",
+    "CppParser",
     "CSharpParser",
     "GoParser",
     "JavaParser",
     "PythonParser",
     "RubyParser",
     "RustParser",
-    "ScalaParser",
     "TypeScriptParser",
+    "ScalaParser",
 ]
 
 
@@ -48,6 +50,8 @@ def parser_for(language: str) -> BaseParser | None:
         return CSharpParser()
     if language == "rust":
         return RustParser()
+    if language in ("c", "cpp"):
+        return CppParser()
     if language == "scala":
         return ScalaParser()
     return None
