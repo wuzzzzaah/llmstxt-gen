@@ -87,6 +87,19 @@ def _get_value_after_equals(node: Node) -> Node | None:
     return None
 
 
+def _find_all_identifiers(node: Node) -> list[Node]:
+    """Recursively find all identifiers within a node (e.g. for tuple patterns)."""
+    if node.type == "identifier":
+        return [node]
+    ids = []
+    for child in node.children:
+        if child.type in ("template_body", "template_definition", "function_definition"):
+            # Do not recurse into nested definitions
+            continue
+        ids.extend(_find_all_identifiers(child))
+    return ids
+
+
 def _parse_parameters(params_node: Node | None, source: bytes) -> list[ParsedParameter]:
     if not params_node:
         return []
@@ -140,22 +153,27 @@ def _parse_function(node: Node, source: bytes) -> ParsedFunction:
 
 def _parse_val_var(node: Node, source: bytes) -> list[ParsedConstant]:
     # val x, y: Int = 1
+    # val (a, b) = (2, 3)
     type_node = _get_type_after_colon(node)
     type_hint = _text(type_node, source) if type_node else ""
     value_node = _get_value_after_equals(node)
     value = _text(value_node, source) if value_node else ""
 
     constants = []
-    # Identifiers are children
+    # In Scala tree-sitter, identifiers can be nested (identifiers node, tuple_pattern, etc)
+    # We want to find all identifier nodes that are before the colon or equals sign.
+
+    # Simple heuristic: find all identifier nodes that are children or grandchildren of patterns
     for child in node.children:
-        if child.type == "identifier":
-            constants.append(
-                ParsedConstant(
-                    name=_text(child, source),
-                    type_hint=type_hint,
-                    value=value,
+        if child.type in ("identifiers", "tuple_pattern", "identifier", "variable_pattern"):
+            for id_node in _find_all_identifiers(child):
+                constants.append(
+                    ParsedConstant(
+                        name=_text(id_node, source),
+                        type_hint=type_hint,
+                        value=value,
+                    )
                 )
-            )
     return constants
 
 
@@ -209,7 +227,7 @@ class ScalaParser(BaseParser):
                 fn = _parse_function(child, source)
                 if self.include_private or not fn.is_private:
                     module.functions.append(fn)
-            elif child.type in ("val_definition", "var_definition"):
+            elif child.type in ("val_definition", "var_definition", "val_declaration", "var_declaration"):
                 if self.include_private or not _is_private(child):
                     module.constants.extend(_parse_val_var(child, source))
             elif child.type == "extension_definition":
@@ -289,7 +307,7 @@ class ScalaParser(BaseParser):
                     fn = _parse_function(member, source)
                     if self.include_private or not fn.is_private:
                         cls.methods.append(fn)
-                elif member.type in ("val_definition", "var_definition"):
+                elif member.type in ("val_definition", "var_definition", "val_declaration", "var_declaration"):
                     if self.include_private or not _is_private(member):
                         cls.class_vars.extend(_parse_val_var(member, source))
                 elif member.type == "enum_case_definitions":

@@ -161,3 +161,23 @@ def test_scala_parser_fixture():
     methods = {m.name: m for m in greeter.methods}
     assert "greet" in methods
     assert "defaultPrefix" in methods
+
+def test_scala_parser_complex_vals():
+    content = """
+    trait T {
+      val abstractVal: Int
+      val x, y: Int = 1
+      val (a, b) = (2, 3)
+    }
+    """
+    parser = ScalaParser()
+    source_file = SourceFile(Path("test.scala"), "scala", content)
+    module = parser.parse(source_file)
+
+    cls = module.classes[0]
+    cvars = {cv.name: cv for cv in cls.class_vars}
+    assert "abstractVal" in cvars
+    assert "x" in cvars
+    assert "y" in cvars
+    assert "a" in cvars
+    assert "b" in cvars
