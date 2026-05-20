@@ -79,13 +79,14 @@ def _get_zod_type(node: Node, source: bytes) -> tuple[str, bool]:
                     "undefined",
                 ):
                     type_name = name
-            curr = fn.child_by_field_name("object")
-            if not curr:
+            next_curr = fn.child_by_field_name("object")
+            if next_curr is None:
                 break
+            curr = next_curr
         else:
             break
 
-    if curr.type == "member_expression":
+    if curr is not None and curr.type == "member_expression":
         prop = curr.child_by_field_name("property")
         if prop:
             name = _text(prop, source)
@@ -495,32 +496,32 @@ class TypeScriptParser(BaseParser):
                             "deepPartial",
                         }
                         is_complex = False
-                        curr = value_node
-                        while curr.type == "call_expression":
-                            fn = curr.child_by_field_name("function")
-                            if fn and fn.type == "member_expression":
-                                prop = fn.child_by_field_name("property")
+                        zod_curr: Node | None = value_node
+                        while zod_curr is not None and zod_curr.type == "call_expression":
+                            fn_node = zod_curr.child_by_field_name("function")
+                            if fn_node is not None and fn_node.type == "member_expression":
+                                prop = fn_node.child_by_field_name("property")
                                 if prop and _text(prop, source) in complex_methods:
                                     is_complex = True
                                     break
-                                curr = fn.child_by_field_name("object")
+                                zod_curr = fn_node.child_by_field_name("object")
                             else:
                                 break
 
                         if not is_complex:
                             # Find the z.object call
                             z_obj_node = None
-                            curr = value_node
-                            while curr.type == "call_expression":
-                                fn = curr.child_by_field_name("function")
-                                if fn and fn.type == "member_expression":
-                                    prop = fn.child_by_field_name("property")
+                            zod_curr = value_node
+                            while zod_curr is not None and zod_curr.type == "call_expression":
+                                fn_node = zod_curr.child_by_field_name("function")
+                                if fn_node is not None and fn_node.type == "member_expression":
+                                    prop = fn_node.child_by_field_name("property")
                                     if prop and _text(prop, source) == "object":
-                                        obj = fn.child_by_field_name("object")
+                                        obj = fn_node.child_by_field_name("object")
                                         if obj and _text(obj, source) == "z":
-                                            z_obj_node = curr
+                                            z_obj_node = zod_curr
                                             break
-                                    curr = fn.child_by_field_name("object")
+                                    zod_curr = fn_node.child_by_field_name("object")
                                 else:
                                     break
 
