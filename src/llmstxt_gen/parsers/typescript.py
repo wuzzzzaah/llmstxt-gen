@@ -143,18 +143,21 @@ class TypeScriptParser(BaseParser):
 
     def __init__(self, include_private: bool = False) -> None:
         self.include_private = include_private
+        self._js_parser: Any = Parser(_JS_LANGUAGE)
+        self._ts_parser: Any = Parser(_TS_LANGUAGE)
+        self._tsx_parser: Any = Parser(_TSX_LANGUAGE)
 
-    def _language_for(self, source_file: SourceFile) -> Language:
+    def _parser_for(self, source_file: SourceFile) -> Any:
         suffix = source_file.path.suffix.lower()
         if suffix == ".tsx":
-            return _TSX_LANGUAGE
+            return self._tsx_parser
         if suffix in (".ts",):
-            return _TS_LANGUAGE
-        return _JS_LANGUAGE
+            return self._ts_parser
+        return self._js_parser
 
     def parse(self, source_file: SourceFile) -> ParsedModule:
         source = source_file.content.encode("utf-8")
-        parser: Any = Parser(self._language_for(source_file))
+        parser = self._parser_for(source_file)
         tree = parser.parse(source)
         root = tree.root_node
 

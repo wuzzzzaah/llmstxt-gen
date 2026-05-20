@@ -34,3 +34,30 @@ def test_typescript_parser_extracts_interface_and_type(sample_typescript_root: P
     assert "Point" in names
     assert "Pair" in names
     assert "VERSION" in names
+
+def test_typescript_parser_reuses_parser_instances(sample_typescript_root: Path) -> None:
+    parser = TypeScriptParser()
+
+    # Capture initial parser instances
+    js_parser = parser._js_parser
+    ts_parser = parser._ts_parser
+    tsx_parser = parser._tsx_parser
+
+    # Call parse multiple times
+    parser.parse(_load(sample_typescript_root / "index.ts"))
+    parser.parse(_load(sample_typescript_root / "index.ts"))
+
+    # Verify they are the same instances
+    assert parser._js_parser is js_parser
+    assert parser._ts_parser is ts_parser
+    assert parser._tsx_parser is tsx_parser
+
+    # Verify _parser_for returns the correct cached instance
+    ts_file = _load(sample_typescript_root / "index.ts")
+    assert parser._parser_for(ts_file) is ts_parser
+
+    js_file = SourceFile(path=Path("test.js"), language="javascript", content="")
+    assert parser._parser_for(js_file) is js_parser
+
+    tsx_file = SourceFile(path=Path("test.tsx"), language="typescript", content="")
+    assert parser._parser_for(tsx_file) is tsx_parser
