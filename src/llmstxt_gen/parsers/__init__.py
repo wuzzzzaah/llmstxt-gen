@@ -16,6 +16,7 @@ from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
 from llmstxt_gen.parsers.rust import RustParser
 from llmstxt_gen.parsers.scala import ScalaParser
+from llmstxt_gen.parsers.swift import SwiftParser
 from llmstxt_gen.parsers.typescript import TypeScriptParser
 
 __all__ = [
@@ -57,4 +58,6 @@ def parser_for(language: str) -> BaseParser | None:
         return ScalaParser()
     if language == "php":
         return PHPParser()
+    if language == "swift":
+        return SwiftParser()
     return None
