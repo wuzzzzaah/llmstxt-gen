@@ -24,6 +24,39 @@ from llmstxt_gen.walker import SourceFile
 
 _SWIFT_LANGUAGE = Language(tree_sitter_swift.language())
 
+_MODIFIERS = "modifiers"
+_VISIBILITY_MODIFIER = "visibility_modifier"
+_COMMENT = "comment"
+_MULTILINE_COMMENT = "multiline_comment"
+_NEWLINE = "\n"
+_SOURCE_FILE = "source_file"
+_IMPORT_DECLARATION = "import_declaration"
+_ATTRIBUTE = "attribute"
+_FUNCTION_DECLARATION = "function_declaration"
+_CLASS_DECLARATION = "class_declaration"
+_EXTENSION = "extension"
+_PROTOCOL_DECLARATION = "protocol_declaration"
+_PROPERTY_DECLARATION = "property_declaration"
+_MACRO_DECLARATION = "macro_declaration"
+_SIMPLE_IDENTIFIER = "simple_identifier"
+_TYPE_CONSTRAINTS = "type_constraints"
+_PARAMETER = "parameter"
+_ASYNC = "async"
+_THROWS = "throws"
+_COLON = ":"
+_EQUAL = "="
+_PATTERN = "pattern"
+_TYPE_ANNOTATION = "type_annotation"
+_INHERITANCE_SPECIFIER = "inheritance_specifier"
+_CLASS_BODY = "class_body"
+_ENUM_CLASS_BODY = "enum_class_body"
+_INIT_DECLARATION = "init_declaration"
+_ENUM_ENTRY = "enum_entry"
+_PROTOCOL_BODY = "protocol_body"
+_PROTOCOL_FUNCTION_DECLARATION = "protocol_function_declaration"
+_PROTOCOL_PROPERTY_DECLARATION = "protocol_property_declaration"
+_USER_TYPE = "user_type"
+
 
 def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -33,13 +66,13 @@ def _is_private(node: Node, source: bytes) -> bool:
     modifiers = node.child_by_field_name("modifiers")
     if not modifiers:
         for child in node.children:
-            if child.type == "modifiers":
+            if child.type == _MODIFIERS:
                 modifiers = child
                 break
     if not modifiers:
         return False
     for child in modifiers.named_children:
-        if child.type == "visibility_modifier":
+        if child.type == _VISIBILITY_MODIFIER:
             txt = _text(child, source)
             if txt in ("private", "fileprivate"):
                 return True
@@ -51,7 +84,7 @@ def _get_doc(node: Node, source: bytes) -> str:
     docs: list[str] = []
     curr = node.prev_sibling
     while curr:
-        if curr.type in ("comment", "multiline_comment"):
+        if curr.type in (_COMMENT, _MULTILINE_COMMENT):
             text = _text(curr, source).strip()
             if text.startswith("///"):
                 docs.insert(0, text[3:].strip())
@@ -60,24 +93,24 @@ def _get_doc(node: Node, source: bytes) -> str:
                 docs.insert(0, inner)
             elif text.startswith("//"):
                 break
-        elif curr.type == "\n":
+        elif curr.type == _NEWLINE:
             pass
         else:
             break
         curr = curr.prev_sibling
 
-    if node.type == "source_file":
+    if node.type == _SOURCE_FILE:
         for child in node.children:
-            if child.type == "comment":
+            if child.type == _COMMENT:
                 text = _text(child, source).strip()
                 if text.startswith("///"):
                     docs.append(text[3:].strip())
-            elif child.type == "multiline_comment":
+            elif child.type == _MULTILINE_COMMENT:
                 text = _text(child, source).strip()
                 if text.startswith("/**"):
                     docs.append(text[3:-2].strip())
             elif (
-                child.type not in ("comment", "multiline_comment", "import_declaration")
+                child.type not in (_COMMENT, _MULTILINE_COMMENT, _IMPORT_DECLARATION)
                 and child.is_named
             ):
                 break
@@ -90,12 +123,12 @@ def _get_decorators(node: Node, source: bytes) -> list[str]:
     modifiers = node.child_by_field_name("modifiers")
     if not modifiers:
         for child in node.children:
-            if child.type == "modifiers":
+            if child.type == _MODIFIERS:
                 modifiers = child
                 break
     if modifiers:
         for child in modifiers.named_children:
-            if child.type == "attribute":
+            if child.type == _ATTRIBUTE:
                 decorators.append(_text(child, source))
     return decorators
 
@@ -124,27 +157,27 @@ class SwiftParser(BaseParser):
         classes_by_name: dict[str, ParsedClass] = {}
 
         for child in root.named_children:
-            if child.type == "function_declaration":
+            if child.type == _FUNCTION_DECLARATION:
                 if self.include_private or not _is_private(child, source):
                     module.functions.append(self._parse_function(child, source))
-            elif child.type == "class_declaration":
-                is_extension = any(c.type == "extension" for c in child.children)
+            elif child.type == _CLASS_DECLARATION:
+                is_extension = any(c.type == _EXTENSION for c in child.children)
                 if is_extension:
                     self._handle_extension(child, source, classes_by_name, module)
                 elif self.include_private or not _is_private(child, source):
                     cls = self._parse_class(child, source)
                     module.classes.append(cls)
                     classes_by_name[cls.name] = cls
-            elif child.type == "protocol_declaration":
+            elif child.type == _PROTOCOL_DECLARATION:
                 if self.include_private or not _is_private(child, source):
                     cls = self._parse_protocol(child, source)
                     module.classes.append(cls)
                     classes_by_name[cls.name] = cls
-            elif child.type == "property_declaration" and (
+            elif child.type == _PROPERTY_DECLARATION and (
                 self.include_private or not _is_private(child, source)
             ):
                 module.functions.append(self._parse_property(child, source))
-            elif child.type == "macro_declaration" and (
+            elif child.type == _MACRO_DECLARATION and (
                 self.include_private or not _is_private(child, source)
             ):
                 module.functions.append(self._parse_macro(child, source))
@@ -155,7 +188,7 @@ class SwiftParser(BaseParser):
         name_node = node.child_by_field_name("name")
         if not name_node:
             for child in node.children:
-                if child.type == "simple_identifier":
+                if child.type == _SIMPLE_IDENTIFIER:
                     name_node = child
                     break
         name = _text(name_node, source) if name_node else ""
@@ -165,13 +198,13 @@ class SwiftParser(BaseParser):
             name += _text(type_params, source)
 
         for child in node.children:
-            if child.type == "type_constraints":
+            if child.type == _TYPE_CONSTRAINTS:
                 name += " " + _text(child, source)
                 break
 
         params: list[ParsedParameter] = []
         for child in node.children:
-            if child.type == "parameter":
+            if child.type == _PARAMETER:
                 params.append(self._parse_parameter(child, source))
 
         ret_node = node.child_by_field_name("return_type")
@@ -179,8 +212,8 @@ class SwiftParser(BaseParser):
         if ret_type.startswith("->"):
             ret_type = ret_type[2:].strip()
 
-        is_async = any(c.type == "async" for c in node.children)
-        is_throws = any(c.type == "throws" for c in node.children)
+        is_async = any(c.type == _ASYNC for c in node.children)
+        is_throws = any(c.type == _THROWS for c in node.children)
         if is_throws:
             ret_type = f"throws -> {ret_type}" if ret_type else "throws"
 
@@ -203,10 +236,10 @@ class SwiftParser(BaseParser):
         found_colon = False
         found_eq = False
         for c in node.children:
-            if c.type == ":":
+            if c.type == _COLON:
                 found_colon = True
                 continue
-            if c.type == "=":
+            if c.type == _EQUAL:
                 found_eq = True
                 continue
 
@@ -229,14 +262,14 @@ class SwiftParser(BaseParser):
         pattern = node.child_by_field_name("pattern")
         if not pattern:
             for child in node.children:
-                if child.type == "pattern":
+                if child.type == _PATTERN:
                     pattern = child
                     break
 
         name = ""
         if pattern:
             for child in pattern.children:
-                if child.type == "simple_identifier":
+                if child.type == _SIMPLE_IDENTIFIER:
                     name = _text(child, source)
                     break
             if not name:
@@ -245,7 +278,7 @@ class SwiftParser(BaseParser):
         type_node = node.child_by_field_name("type")
         if not type_node:
             for child in node.children:
-                if child.type == "type_annotation":
+                if child.type == _TYPE_ANNOTATION:
                     type_node = child
                     break
 
@@ -273,7 +306,7 @@ class SwiftParser(BaseParser):
 
         bases: list[str] = []
         for child in node.children:
-            if child.type == "inheritance_specifier":
+            if child.type == _INHERITANCE_SPECIFIER:
                 bases.append(_text(child, source))
 
         methods: list[ParsedFunction] = []
@@ -282,24 +315,24 @@ class SwiftParser(BaseParser):
         body = node.child_by_field_name("body")
         if not body:
             for child in node.children:
-                if child.type in ("class_body", "enum_class_body"):
+                if child.type in (_CLASS_BODY, _ENUM_CLASS_BODY):
                     body = child
                     break
 
         if body:
             for child in body.named_children:
-                if child.type == "function_declaration":
+                if child.type == _FUNCTION_DECLARATION:
                     if self.include_private or not _is_private(child, source):
                         methods.append(self._parse_function(child, source))
-                elif child.type == "init_declaration":
+                elif child.type == _INIT_DECLARATION:
                     if self.include_private or not _is_private(child, source):
                         methods.append(self._parse_init(child, source))
-                elif child.type == "property_declaration":
+                elif child.type == _PROPERTY_DECLARATION:
                     if self.include_private or not _is_private(child, source):
                         methods.append(self._parse_property(child, source))
-                elif child.type == "enum_entry":
+                elif child.type == _ENUM_ENTRY:
                     for grandchild in child.named_children:
-                        if grandchild.type == "simple_identifier":
+                        if grandchild.type == _SIMPLE_IDENTIFIER:
                             class_vars.append(ParsedConstant(name=_text(grandchild, source)))
 
         return ParsedClass(
@@ -322,31 +355,31 @@ class SwiftParser(BaseParser):
 
         bases: list[str] = []
         for child in node.children:
-            if child.type == "inheritance_specifier":
+            if child.type == _INHERITANCE_SPECIFIER:
                 bases.append(_text(child, source))
 
         methods: list[ParsedFunction] = []
         body = node.child_by_field_name("body")
         if not body:
             for child in node.children:
-                if child.type == "protocol_body":
+                if child.type == _PROTOCOL_BODY:
                     body = child
                     break
         if body:
             for child in body.named_children:
-                if child.type == "protocol_function_declaration":
+                if child.type == _PROTOCOL_FUNCTION_DECLARATION:
                     methods.append(self._parse_function(child, source))
-                elif child.type == "protocol_property_declaration":
+                elif child.type == _PROTOCOL_PROPERTY_DECLARATION:
                     pattern = child.child_by_field_name("pattern")
                     if not pattern:
                         for c in child.children:
-                            if c.type == "pattern":
+                            if c.type == _PATTERN:
                                 pattern = c
                                 break
                     name_str = ""
                     if pattern:
                         for c in pattern.children:
-                            if c.type == "simple_identifier":
+                            if c.type == _SIMPLE_IDENTIFIER:
                                 name_str = _text(c, source)
                                 break
                         if not name_str:
@@ -355,7 +388,7 @@ class SwiftParser(BaseParser):
                     type_node = child.child_by_field_name("type")
                     if not type_node:
                         for c in child.children:
-                            if c.type == "type_annotation":
+                            if c.type == _TYPE_ANNOTATION:
                                 type_node = c
                                 break
                     type_str = _text(type_node, source) if type_node else ""
@@ -384,7 +417,7 @@ class SwiftParser(BaseParser):
         type_node = node.child_by_field_name("name")
         if not type_node:
             for child in node.children:
-                if child.type == "user_type":
+                if child.type == _USER_TYPE:
                     type_node = child
                     break
         if not type_node:
@@ -400,19 +433,19 @@ class SwiftParser(BaseParser):
         body = node.child_by_field_name("body")
         if not body:
             for child in node.children:
-                if child.type == "class_body":
+                if child.type == _CLASS_BODY:
                     body = child
                     break
         if body:
             for child in body.named_children:
-                if child.type == "function_declaration":
+                if child.type == _FUNCTION_DECLARATION:
                     if self.include_private or not _is_private(child, source):
                         cls.methods.append(self._parse_function(child, source))
-                elif child.type == "property_declaration" and (
+                elif child.type == _PROPERTY_DECLARATION and (
                     self.include_private or not _is_private(child, source)
                 ):
                     cls.methods.append(self._parse_property(child, source))
-                elif child.type == "init_declaration" and (
+                elif child.type == _INIT_DECLARATION and (
                     self.include_private or not _is_private(child, source)
                 ):
                     cls.methods.append(self._parse_init(child, source))
