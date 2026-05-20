@@ -11,6 +11,7 @@ from llmstxt_gen.parsers.cpp import CppParser
 from llmstxt_gen.parsers.csharp import CSharpParser
 from llmstxt_gen.parsers.go import GoParser
 from llmstxt_gen.parsers.java import JavaParser
+from llmstxt_gen.parsers.php import PHPParser
 from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.ruby import RubyParser
 from llmstxt_gen.parsers.rust import RustParser
@@ -55,6 +56,8 @@ def parser_for(language: str) -> BaseParser | None:
         return CppParser()
     if language == "scala":
         return ScalaParser()
+    if language == "php":
+        return PHPParser()
     if language == "swift":
         return SwiftParser()
     return None
