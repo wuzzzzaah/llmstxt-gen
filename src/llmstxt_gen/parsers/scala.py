@@ -227,7 +227,12 @@ class ScalaParser(BaseParser):
                 fn = _parse_function(child, source)
                 if self.include_private or not fn.is_private:
                     module.functions.append(fn)
-            elif child.type in ("val_definition", "var_definition", "val_declaration", "var_declaration"):
+            elif child.type in (
+                "val_definition",
+                "var_definition",
+                "val_declaration",
+                "var_declaration",
+            ):
                 if self.include_private or not _is_private(child):
                     module.constants.extend(_parse_val_var(child, source))
             elif child.type == "extension_definition":
@@ -307,7 +312,12 @@ class ScalaParser(BaseParser):
                     fn = _parse_function(member, source)
                     if self.include_private or not fn.is_private:
                         cls.methods.append(fn)
-                elif member.type in ("val_definition", "var_definition", "val_declaration", "var_declaration"):
+                elif member.type in (
+                    "val_definition",
+                    "var_definition",
+                    "val_declaration",
+                    "var_declaration",
+                ):
                     if self.include_private or not _is_private(member):
                         cls.class_vars.extend(_parse_val_var(member, source))
                 elif member.type == "enum_case_definitions":

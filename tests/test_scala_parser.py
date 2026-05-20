@@ -1,6 +1,8 @@
 from pathlib import Path
+
 from llmstxt_gen.parsers.scala import ScalaParser
 from llmstxt_gen.walker import SourceFile
+
 
 def test_scala_parser_basic():
     content = """
@@ -75,6 +77,7 @@ def test_scala_parser_basic():
     # Private class should be skipped
     assert "PrivateClass" not in classes
 
+
 def test_scala_parser_private():
     content = """
     private class PrivateClass
@@ -91,6 +94,7 @@ def test_scala_parser_private():
     assert "PublicClass" in classes
     pc = classes["PublicClass"]
     assert any(m.name == "privateMethod" for m in pc.methods)
+
 
 def test_scala_parser_scala3():
     content = """
@@ -111,6 +115,7 @@ def test_scala_parser_scala3():
     assert "given intOrd" in functions
     assert functions["given intOrd"].return_type == "Ordering[Int]"
 
+
 def test_scala_parser_implicits():
     content = """
     def foo(implicit x: Int): Unit
@@ -125,6 +130,7 @@ def test_scala_parser_implicits():
     assert functions["foo"].parameters[0].name == "implicit x"
     assert "bar" in functions
     assert functions["bar"].parameters[0].name == "using y"
+
 
 def test_scala_parser_companion_order():
     content = """
@@ -142,6 +148,7 @@ def test_scala_parser_companion_order():
     mc = classes["MyClass"]
     assert any(m.name == "companionMethod" for m in mc.methods)
     assert any(cv.name == "x" for cv in mc.class_vars)
+
 
 def test_scala_parser_fixture():
     fixture_path = Path("tests/fixtures/sample_scala/Main.scala")
@@ -161,6 +168,7 @@ def test_scala_parser_fixture():
     methods = {m.name: m for m in greeter.methods}
     assert "greet" in methods
     assert "defaultPrefix" in methods
+
 
 def test_scala_parser_complex_vals():
     content = """
