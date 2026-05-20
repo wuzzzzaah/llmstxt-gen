@@ -60,6 +60,7 @@ def test_ruby_parser_basic():
     assert mod.class_vars[0].name == "MY_CONST"
     assert mod.class_vars[0].value == '"hello"'
 
+
 def test_ruby_parser_include_private():
     fixture_path = Path("tests/fixtures/sample_ruby/sample.rb")
     content = fixture_path.read_text()
@@ -84,6 +85,7 @@ def test_ruby_parser_include_private():
     public_fn = next(m for m in cls.methods if m.name == "public_method")
     assert public_fn.is_private is False
 
+
 def test_ruby_parser_parameter_types():
     content = """
 def complex_params(a, b=1, *args, **kwargs, &block, k: 2)
@@ -105,6 +107,7 @@ end
     assert "k:" in params
     assert params["k:"].default == "2"
 
+
 def test_ruby_parser_nested():
     content = """
 module A
@@ -124,6 +127,7 @@ end
     # which matches how Python parser handles nested classes (it ignores them if not explicitly handled).
     # But let's check what it does.
 
+
 def test_ruby_parser_modifier_visibility():
     content = """
 class Foo
@@ -141,12 +145,14 @@ end
     # 'baz' should be private because of 'private def baz'
     assert "baz" not in method_names
 
+
 def test_ruby_parser_scoped_superclass():
     content = "class A < Scoped::Base; end"
     source_file = SourceFile(path=Path("test.rb"), language="ruby", content=content)
     parser = RubyParser()
     module = parser.parse(source_file)
     assert module.classes[0].bases == ["Scoped::Base"]
+
 
 def test_ruby_parser_attr_visibility():
     content = """

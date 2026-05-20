@@ -81,7 +81,7 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     for module in modules:
         anchor = _slug(module.path)
         out.append(f"## {module.path}")
-        out.append(f"<a id=\"{anchor}\"></a>")
+        out.append(f'<a id="{anchor}"></a>')
         out.append("")
         if module.docstring:
             out.extend([module.docstring, ""])

@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import pytest
 from llmstxt_gen.parsers.elixir import ElixirParser
 from llmstxt_gen.walker import SourceFile
 
-def test_parse_elixir_module():
+
+def test_parse_elixir_module() -> None:
     fixture_path = Path("tests/fixtures/sample_elixir/sample.ex")
     content = fixture_path.read_text()
     source_file = SourceFile(path=fixture_path, language="elixir", content=content)
@@ -13,7 +13,9 @@ def test_parse_elixir_module():
     module = parser.parse(source_file)
 
     assert module.name == "sample"
-    assert len(module.classes) == 3 # SampleModule.Core, SampleProtocol, SampleProtocol Integer implementation
+    assert (
+        len(module.classes) == 3
+    )  # SampleModule.Core, SampleProtocol, SampleProtocol Integer implementation
 
     # Check SampleModule.Core
     core = next(c for c in module.classes if c.name == "SampleModule.Core")
@@ -33,7 +35,7 @@ def test_parse_elixir_module():
     assert hello.parameters[0].type_hint == "String.t()"
 
     multi = next(f for f in core.methods if "multi" in f.name)
-    assert "multi (+1 heads)" == multi.name
+    assert multi.name == "multi (+1 heads)"
 
     my_macro = next(f for f in core.methods if "my_macro" in f.name)
     assert my_macro.name == "my_macro"
@@ -41,7 +43,8 @@ def test_parse_elixir_module():
     # Check private
     assert not any(f.name == "secret_func" for f in core.methods)
 
-def test_parse_elixir_include_private():
+
+def test_parse_elixir_include_private() -> None:
     fixture_path = Path("tests/fixtures/sample_elixir/sample.ex")
     content = fixture_path.read_text()
     source_file = SourceFile(path=fixture_path, language="elixir", content=content)
@@ -52,7 +55,8 @@ def test_parse_elixir_include_private():
     core = next(c for c in module.classes if c.name == "SampleModule.Core")
     assert any(f.name == "secret_func" for f in core.methods)
 
-def test_parse_elixir_protocol():
+
+def test_parse_elixir_protocol() -> None:
     fixture_path = Path("tests/fixtures/sample_elixir/sample.ex")
     content = fixture_path.read_text()
     source_file = SourceFile(path=fixture_path, language="elixir", content=content)

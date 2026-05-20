@@ -10,14 +10,12 @@ from llmstxt_gen.walker import SourceFile
 def parser():
     return CSharpParser()
 
+
 @pytest.fixture
 def sample_cs():
     path = Path("tests/fixtures/sample_csharp/Sample.cs")
-    return SourceFile(
-        path=path,
-        language="csharp",
-        content=path.read_text()
-    )
+    return SourceFile(path=path, language="csharp", content=path.read_text())
+
 
 def test_parse_classes(parser, sample_cs):
     module = parser.parse(sample_cs)
@@ -50,12 +48,14 @@ def test_parse_classes(parser, sample_cs):
     identity = next(m for m in pc.methods if m.name == "Identity<T> where T : class")
     assert identity.return_type == "T"
 
+
 def test_parse_interface(parser, sample_cs):
     module = parser.parse(sample_cs)
     svc = next(c for c in module.classes if c.name == "IService")
     method_names = [m.name for m in svc.methods]
     assert "Run" in method_names
     assert svc.methods[0].return_type == "void"
+
 
 def test_parse_property(parser, sample_cs):
     module = parser.parse(sample_cs)
@@ -65,11 +65,13 @@ def test_parse_property(parser, sample_cs):
     assert prop.return_type == "string"
     assert "A public property." in prop.docstring
 
+
 def test_parse_attribute(parser, sample_cs):
     module = parser.parse(sample_cs)
     pc = next(c for c in module.classes if c.name == "PublicClass")
     method = next(m for m in pc.methods if m.name == "DoSomething")
     assert 'Obsolete("Use something else")' in method.decorators
+
 
 def test_parse_record(parser, sample_cs):
     module = parser.parse(sample_cs)
@@ -78,12 +80,14 @@ def test_parse_record(parser, sample_cs):
     assert "Id" in class_var_names
     assert "Email" in class_var_names
 
+
 def test_parse_enum(parser, sample_cs):
     module = parser.parse(sample_cs)
     enm = next(c for c in module.classes if c.name == "Status")
     assert len(enm.class_vars) == 2
     assert enm.class_vars[0].name == "Active"
     assert enm.class_vars[1].name == "Inactive"
+
 
 def test_partial_class_merging(parser, sample_cs):
     module = parser.parse(sample_cs)
@@ -93,6 +97,7 @@ def test_partial_class_merging(parser, sample_cs):
     method_names = [m.name for m in partial_classes[0].methods]
     assert "Part1" in method_names
     assert "Part2" in method_names
+
 
 def test_include_private(sample_cs):
     parser = CSharpParser(include_private=True)

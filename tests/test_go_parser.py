@@ -7,10 +7,12 @@ from llmstxt_gen.walker import SourceFile
 def _load(path: Path) -> SourceFile:
     return SourceFile(path=path, language="go", content=path.read_text())
 
+
 def test_go_parser_extracts_package_docstring(sample_go_root: Path) -> None:
     parser = GoParser()
     module = parser.parse(_load(sample_go_root / "main.go"))
     assert "sample Go package" in module.docstring
+
 
 def test_go_parser_extracts_public_functions(sample_go_root: Path) -> None:
     parser = GoParser()
@@ -18,6 +20,7 @@ def test_go_parser_extracts_public_functions(sample_go_root: Path) -> None:
     names = [f.name for f in module.functions]
     assert "ExportedFunction" in names
     assert "unexportedFunction" not in names
+
 
 def test_go_parser_extracts_structs_and_methods(sample_go_root: Path) -> None:
     parser = GoParser()
@@ -27,6 +30,7 @@ def test_go_parser_extracts_structs_and_methods(sample_go_root: Path) -> None:
     method_names = [m.name for m in cls.methods]
     assert "MyMethod" in method_names
     assert "unexportedMethod" not in method_names
+
 
 def test_go_parser_extracts_interfaces(sample_go_root: Path) -> None:
     parser = GoParser()
@@ -53,6 +57,7 @@ def test_go_parser_extracts_constants_and_variables(sample_go_root: Path) -> Non
     assert "C1" in const_names
     assert "V1" in const_names
 
+
 def test_go_parser_includes_private_when_requested(sample_go_root: Path) -> None:
     parser = GoParser(include_private=True)
     module = parser.parse(_load(sample_go_root / "main.go"))
@@ -61,11 +66,13 @@ def test_go_parser_includes_private_when_requested(sample_go_root: Path) -> None
     cls = next(c for c in module.classes if c.name == "MyStruct")
     assert any(m.name == "unexportedMethod" for m in cls.methods)
 
+
 def test_go_parser_extracts_embedded_types(sample_go_root: Path) -> None:
     parser = GoParser()
     module = parser.parse(_load(sample_go_root / "main.go"))
     cls = next(c for c in module.classes if c.name == "EmbeddedStruct")
     assert "MyStruct" in cls.bases
+
 
 def test_go_parser_handles_multiple_parameters_same_type() -> None:
     parser = GoParser()
@@ -80,6 +87,7 @@ def test_go_parser_handles_multiple_parameters_same_type() -> None:
     assert fn.parameters[1].type_hint == "int"
     assert fn.parameters[2].name == "c"
     assert fn.parameters[2].type_hint == "string"
+
 
 def test_go_parser_handles_variadic_parameters() -> None:
     parser = GoParser()

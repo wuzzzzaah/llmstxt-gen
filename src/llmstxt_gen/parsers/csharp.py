@@ -271,7 +271,9 @@ class CSharpParser(BaseParser):
         else:
             parent.methods.append(fn)
 
-    def _parse_property(self, node: Node, source: bytes, parent: ParsedModule | ParsedClass) -> None:
+    def _parse_property(
+        self, node: Node, source: bytes, parent: ParsedModule | ParsedClass
+    ) -> None:
         name_node = node.child_by_field_name("name")
         name = _text(name_node, source) if name_node else ""
         type_node = node.child_by_field_name("type")

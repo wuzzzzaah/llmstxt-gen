@@ -43,8 +43,7 @@ def _collect_modules(config: LlmsTxtConfig, verbose: bool = False) -> list[Parse
             module.path = str(source_file.path)
         if verbose:
             typer.echo(
-                f"parsed {module.path} "
-                f"({len(module.functions)} fns, {len(module.classes)} classes)"
+                f"parsed {module.path} ({len(module.functions)} fns, {len(module.classes)} classes)"
             )
         modules.append(module)
     return modules
