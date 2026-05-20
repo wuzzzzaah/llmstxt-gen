@@ -1,8 +1,9 @@
 """JavaScript/TypeScript parser backed by tree-sitter.
 
-Extracts exported functions, classes, type aliases, interfaces, and
-constants. Non-exported symbols are skipped unless ``include_private`` is
-set on the parser.
+Extracts exported functions, classes, type aliases, interfaces, constants,
+and HTTP route handlers (Express.js and Next.js App Router conventions).
+Non-exported symbols are skipped unless ``include_private`` is set on the
+parser.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    ParsedRoute,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -67,7 +69,14 @@ def _parse_ts_parameters(params_node: Node | None, source: bytes) -> list[Parsed
             value = child.child_by_field_name("value")
             if value is not None:
                 default = _text(value, source)
-            out.append(ParsedParameter(name=name, type_hint=type_hint, default=default))
+            out.append(
+                ParsedParameter(
+                    name=name,
+                    type_hint=type_hint,
+                    default=default,
+                    is_optional=child.type == "optional_parameter",
+                )
+            )
         elif child.type == "identifier":
             out.append(ParsedParameter(name=_text(child, source)))
     return out
@@ -136,6 +145,146 @@ def _parse_class_node(
     )
 
 
+_EXPRESS_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options", "all"})
+_HTTP_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
+
+
+def _extract_express_routes(root: Node, source: bytes) -> list[ParsedRoute]:
+    """Walk the AST and collect Express-style ``app.METHOD(path, handler)`` calls."""
+    routes: list[ParsedRoute] = []
+
+    def _walk(node: Node) -> None:
+        if node.type == "call_expression":
+            fn_node = node.child_by_field_name("function")
+            args_node = node.child_by_field_name("arguments")
+            if fn_node is not None and fn_node.type == "member_expression" and args_node is not None:
+                prop = fn_node.child_by_field_name("property")
+                method_text = _text(prop, source) if prop is not None else ""
+                if method_text.lower() in _EXPRESS_METHODS:
+                    # First argument should be the path string
+                    arg_children = [c for c in args_node.named_children]
+                    if arg_children:
+                        path_node = arg_children[0]
+                        raw = _text(path_node, source)
+                        # Strip surrounding quotes
+                        if (raw.startswith('"') and raw.endswith('"')) or (
+                            raw.startswith("'") and raw.endswith("'")
+                        ):
+                            raw = raw[1:-1]
+                        # Resolve handler name if it's an identifier
+                        handler = ""
+                        if len(arg_children) >= 2:
+                            last = arg_children[-1]
+                            if last.type == "identifier":
+                                handler = _text(last, source)
+                        routes.append(
+                            ParsedRoute(
+                                method=method_text.upper(),
+                                path=raw,
+                                handler=handler,
+                                line=node.start_point[0] + 1,
+                                docstring=_leading_jsdoc(node, source),
+                            )
+                        )
+        for child in node.children:
+            _walk(child)
+
+    _walk(root)
+    return routes
+
+
+def _infer_nextjs_routes(
+    root: Node, source: bytes, file_path: Any
+) -> list[ParsedRoute]:
+    """Infer Next.js App Router routes from the file path and exported HTTP-verb functions.
+
+    * ``route.ts`` / ``route.js`` files: each exported function named after an
+      HTTP verb (GET, POST, …) becomes a route.
+    * ``page.tsx`` / ``page.jsx`` / ``page.ts`` / ``page.js`` files: the file
+      itself represents a ``GET`` page render route.
+    """
+    from pathlib import PurePosixPath
+
+    routes: list[ParsedRoute] = []
+    stem = file_path.stem.lower()
+    suffix = file_path.suffix.lower()
+    if stem not in ("route", "page"):
+        return routes
+
+    # Derive the URL path from the file path by stripping the filename and
+    # the leading "app" segment if present.
+    parts = list(PurePosixPath(str(file_path)).parts)
+    # Remove the filename
+    parts = parts[:-1]
+    # Strip everything up to and including the "app" directory (Next.js App
+    # Router root).  Works for both relative and absolute paths.
+    try:
+        app_idx = parts.index("app")
+        parts = parts[app_idx + 1 :]
+    except ValueError:
+        pass
+    # Remove dynamic-segment brackets to make a clean path representation
+    url_path = "/" + "/".join(parts) if parts else "/"
+
+    if stem == "page" and suffix in (".tsx", ".jsx", ".ts", ".js"):
+        routes.append(
+            ParsedRoute(
+                method="GET",
+                path=url_path,
+                handler="default",
+                line=1,
+                docstring="Next.js page component.",
+            )
+        )
+        return routes
+
+    # route.ts — look for exported HTTP-verb function declarations
+    exported_names: list[tuple[str, int, str]] = []  # (name, line, docstring)
+
+    def _collect_exports(node: Node) -> None:
+        if node.type == "export_statement":
+            for child in node.named_children:
+                if child.type == "function_declaration":
+                    name_node = child.child_by_field_name("name")
+                    if name_node is not None:
+                        fn_name = _text(name_node, source)
+                        exported_names.append(
+                            (fn_name, child.start_point[0] + 1, _leading_jsdoc(node, source))
+                        )
+                elif child.type == "lexical_declaration":
+                    for decl in child.named_children:
+                        if decl.type == "variable_declarator":
+                            n = decl.child_by_field_name("name")
+                            v = decl.child_by_field_name("value")
+                            if n is not None and v is not None and v.type in (
+                                "arrow_function",
+                                "function_expression",
+                            ):
+                                exported_names.append(
+                                    (
+                                        _text(n, source),
+                                        decl.start_point[0] + 1,
+                                        _leading_jsdoc(node, source),
+                                    )
+                                )
+        for child in node.children:
+            _collect_exports(child)
+
+    _collect_exports(root)
+    for fn_name, line, doc in exported_names:
+        if fn_name.upper() in _HTTP_METHODS:
+            routes.append(
+                ParsedRoute(
+                    method=fn_name.upper(),
+                    path=url_path,
+                    handler=fn_name,
+                    line=line,
+                    docstring=doc,
+                )
+            )
+    return routes
+
+
 class TypeScriptParser(BaseParser):
     """Parse JavaScript and TypeScript via tree-sitter."""
 
@@ -170,6 +319,11 @@ class TypeScriptParser(BaseParser):
 
         for child in root.named_children:
             self._handle_top_level(child, source, module, exported=False)
+
+        # Route extraction: Express and Next.js App Router
+        module.routes.extend(_extract_express_routes(root, source))
+        module.routes.extend(_infer_nextjs_routes(root, source, source_file.path))
+
         return module
 
     def _handle_top_level(

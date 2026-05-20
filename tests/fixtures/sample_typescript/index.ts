@@ -41,3 +41,10 @@ export interface Point {
 }
 
 export type Pair = [number, number];
+
+/**
+ * Fetch items with optional filters.
+ */
+export async function fetchItems(id: string, since?: string, limit?: number): Promise<string[]> {
+    return [];
+}
