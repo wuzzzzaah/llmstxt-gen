@@ -67,7 +67,14 @@ def _parse_ts_parameters(params_node: Node | None, source: bytes) -> list[Parsed
             value = child.child_by_field_name("value")
             if value is not None:
                 default = _text(value, source)
-            out.append(ParsedParameter(name=name, type_hint=type_hint, default=default))
+            out.append(
+                ParsedParameter(
+                    name=name,
+                    type_hint=type_hint,
+                    default=default,
+                    is_optional=child.type == "optional_parameter",
+                )
+            )
         elif child.type == "identifier":
             out.append(ParsedParameter(name=_text(child, source)))
     return out

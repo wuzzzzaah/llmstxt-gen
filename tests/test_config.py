@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from llmstxt_gen.config import find_pyproject, load_config
+from llmstxt_gen.config import DEFAULT_EXCLUDE, find_pyproject, load_config
 
 
 def test_load_config_returns_defaults_when_no_pyproject(tmp_path: Path) -> None:
@@ -32,6 +32,26 @@ languages = ["python"]
     assert cfg.exclude == ["tests/"]
     assert cfg.include_private is True
     assert cfg.max_tokens_summary == 1234
+
+
+def test_default_exclude_contains_test_patterns(tmp_path: Path) -> None:
+    cfg = load_config(tmp_path)
+    assert "**/*.test.ts" in cfg.exclude
+    assert "**/*.spec.ts" in cfg.exclude
+    assert "**/*.test.py" in cfg.exclude
+    assert "**/test_*.py" in cfg.exclude
+    assert "**/__tests__/**" in cfg.exclude
+
+
+def test_user_exclude_replaces_defaults(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.llmstxt_gen]\nexclude = []\n")
+    cfg = load_config(tmp_path)
+    assert cfg.exclude == []
+
+
+def test_default_exclude_is_populated() -> None:
+    assert len(DEFAULT_EXCLUDE) > 0
+    assert all(isinstance(p, str) for p in DEFAULT_EXCLUDE)
 
 
 def test_find_pyproject_walks_upward(tmp_path: Path) -> None:

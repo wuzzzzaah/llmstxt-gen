@@ -20,6 +20,7 @@ class ParsedParameter:
     name: str
     type_hint: str = ""
     default: str = ""
+    is_optional: bool = False
 
 
 @dataclass
