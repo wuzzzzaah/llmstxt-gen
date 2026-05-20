@@ -30,7 +30,7 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".cpp": "cpp",
     ".hpp": "cpp",
     ".cc": "cpp",
-    ".swift": "swift",
+    "..scala": "scala",
 }
 
 ALWAYS_EXCLUDED = {

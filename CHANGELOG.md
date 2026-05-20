@@ -5,10 +5,12 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Swift parser backed by tree-sitter-swift. Extracts doc comments, public functions, classes, structs, enums, protocols, actors, and extensions. Handles async/throws and generic constraints.
 - Java parser backed by tree-sitter-java. Extracts package Javadoc, public/protected classes, interfaces, enums, records, and their members (methods, constructors, fields, enum constants). Supports generics, annotations, and flattened inner classes.
 - Ruby parser backed by tree-sitter-ruby. Extracts modules, classes, methods, constants, and expands `attr_*` macros. Respects private/protected visibility.
 - C# parser backed by tree-sitter-c-sharp. Extracts XML doc comments, public/protected classes, structs, interfaces, records, enums, and their members. Preserves attributes as decorators and generic constraints in signatures.
 - Rust parser backed by tree-sitter-rust. Extracts module doc comments (`//!`, `///`), public functions (including generics and where clauses), structs, enums, traits, impl blocks, type aliases, and constants/statics.
+- Scala parser backed by tree-sitter-scala. Extracts ScalaDoc, classes, objects, traits, enums, methods, and members. Handles Scala 3 features like given instances and extension methods. Companion objects are merged into their associated classes.
 
 ## [0.2.0] - 2026-05-18
 
