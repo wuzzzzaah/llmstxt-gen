@@ -298,13 +298,12 @@ def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]],
         # process.env.VAR
         obj = node.child_by_field_name("object")
         prop = node.child_by_field_name("property")
-        if obj and prop and prop.type == "property_identifier":
-            if obj.type == "member_expression":
-                inner_obj = obj.child_by_field_name("object")
-                inner_prop = obj.child_by_field_name("property")
-                if (
-                    inner_obj
-                    and inner_prop
+        if obj and prop and prop.type == "property_identifier" and obj.type == "member_expression":
+            inner_obj = obj.child_by_field_name("object")
+            inner_prop = obj.child_by_field_name("property")
+            if (
+                inner_obj
+                and inner_prop
                     and _text(inner_obj, source) == "process"
                     and _text(inner_prop, source) == "env"
                 ):
