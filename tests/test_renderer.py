@@ -80,3 +80,43 @@ def test_render_full_emits_signatures_and_classes() -> None:
     assert "`add(a: int, b: int = 0) -> int`" in out
     assert "`Calc(object)`" in out
     assert "`inc(self) -> None`" in out
+
+
+def test_render_full_handles_zod_constants() -> None:
+    from llmstxt_gen.parsers.base import ParsedConstant
+
+    module = ParsedModule(
+        name="schemas",
+        path="src/schemas.ts",
+        language="typescript",
+        constants=[
+            ParsedConstant(
+                name="createJourneySchema",
+                type_hint="{ title: string, description?: string }",
+                value="z.object({ ... })",
+            ),
+            ParsedConstant(
+                name="updateJourneySchema",
+                value="createJourneySchema.partial()",
+            ),
+            ParsedConstant(
+                name="simpleSchema",
+                value="z.string()",
+            ),
+            ParsedConstant(
+                name="complexSchema",
+                value="z.object({ " + "a: z.string()," * 50 + " })",
+            ),
+        ],
+    )
+    cfg = LlmsTxtConfig(name="test")
+    out = render_full([module], cfg)
+
+    # Uses type_hint if available
+    assert "- `createJourneySchema`: `{ title: string, description?: string }`" in out
+    # Falls back to value if it looks like Zod
+    assert "- `updateJourneySchema`: `createJourneySchema.partial()`" in out
+    assert "- `simpleSchema`: `z.string()`" in out
+    # Truncates long values
+    assert "..." in out
+    assert len(next(line for line in out.splitlines() if "complexSchema" in line)) < 150

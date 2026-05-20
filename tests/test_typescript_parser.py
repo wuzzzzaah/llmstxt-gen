@@ -84,3 +84,27 @@ def test_typescript_parser_reuses_parser_instances(sample_typescript_root: Path)
 
     tsx_file = SourceFile(path=Path("test.tsx"), language="typescript", content="")
     assert parser._parser_for(tsx_file) is tsx_parser
+
+
+def test_typescript_parser_extracts_zod_schema_shape() -> None:
+    content = """
+import { z } from 'zod';
+export const createJourneySchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  age: z.number().int().optional(),
+  isActive: z.boolean().default(true),
+});
+export const other = z.string();
+"""
+    parser = TypeScriptParser()
+    module = parser.parse(SourceFile(path=Path("test.ts"), language="typescript", content=content))
+    constants = {c.name: c for c in module.constants}
+
+    assert "createJourneySchema" in constants
+    # Condensed shape should be in type_hint
+    assert (
+        constants["createJourneySchema"].type_hint
+        == "{ title: string, description?: string, age?: number, isActive: boolean }"
+    )
+    assert constants["other"].type_hint == ""  # Not an object, no condensed shape
