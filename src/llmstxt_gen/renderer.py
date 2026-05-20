@@ -26,7 +26,7 @@ def _first_sentence(text: str) -> str:
 def _format_params(fn: ParsedFunction) -> str:
     bits: list[str] = []
     for p in fn.parameters:
-        chunk = p.name
+        chunk = p.name + ("?" if p.is_optional else "")
         if p.type_hint:
             chunk += f": {p.type_hint}"
         if p.default:
@@ -43,23 +43,30 @@ def _format_signature(fn: ParsedFunction) -> str:
     return sig
 
 
+def _path_key(path: str) -> str:
+    """Return a display key for a module — the relative path without extension.
+
+    Using the full path instead of the bare filename stem avoids ambiguity in
+    projects where many files share the same name (e.g. Next.js ``page.tsx``).
+    """
+    from pathlib import PurePosixPath
+
+    return str(PurePosixPath(path).with_suffix(""))
+
+
 def render_summary(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render a spec-compliant ``llms.txt`` summary document."""
     out: list[str] = [f"# {config.name or 'project'}", ""]
     if config.description:
         out.extend([f"> {config.description}", ""])
 
-    for module in modules:
-        first = _first_sentence(module.docstring) or _first_sentence(_module_fallback(module))
-        out.append(f"{module.name}: {first}".rstrip())
-    out.append("")
-
     out.append("## Modules")
     out.append("")
     for module in modules:
         anchor = _slug(module.path)
-        desc = _first_sentence(module.docstring)
-        out.append(f"- [{module.name}]({config.output_full}#{anchor}): {desc}".rstrip())
+        key = _path_key(module.path)
+        desc = _first_sentence(module.docstring) or _first_sentence(_module_fallback(module))
+        out.append(f"- [{key}]({config.output_full}#{anchor}): {desc}".rstrip())
     out.append("")
     return "\n".join(out)
 

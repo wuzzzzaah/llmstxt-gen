@@ -34,3 +34,25 @@ def test_typescript_parser_extracts_interface_and_type(sample_typescript_root: P
     assert "Point" in names
     assert "Pair" in names
     assert "VERSION" in names
+
+
+def test_typescript_parser_marks_optional_parameters(sample_typescript_root: Path) -> None:
+    parser = TypeScriptParser()
+    module = parser.parse(_load(sample_typescript_root / "index.ts"))
+    fn = next(f for f in module.functions if f.name == "fetchItems")
+    params = {p.name: p for p in fn.parameters}
+    assert not params["id"].is_optional
+    assert params["since"].is_optional
+    assert params["limit"].is_optional
+
+
+def test_renderer_emits_question_mark_for_optional_params(sample_typescript_root: Path) -> None:
+    from llmstxt_gen.renderer import _format_signature
+
+    parser = TypeScriptParser()
+    module = parser.parse(_load(sample_typescript_root / "index.ts"))
+    fn = next(f for f in module.functions if f.name == "fetchItems")
+    sig = _format_signature(fn)
+    assert "since?: string" in sig
+    assert "limit?: number" in sig
+    assert "id?: " not in sig  # id is required
