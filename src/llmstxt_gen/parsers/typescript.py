@@ -52,6 +52,86 @@ def _text(node: Node, source: bytes) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
 
 
+def _get_zod_type(node: Node, source: bytes) -> tuple[str, bool]:
+    """Return (type_name, is_optional) for a Zod type expression."""
+    is_optional = False
+    type_name = "unknown"
+
+    curr = node
+    while curr.type == "call_expression":
+        fn = curr.child_by_field_name("function")
+        if fn and fn.type == "member_expression":
+            prop = fn.child_by_field_name("property")
+            if prop:
+                name = _text(prop, source)
+                if name == "optional":
+                    is_optional = True
+                elif name in (
+                    "string",
+                    "number",
+                    "boolean",
+                    "date",
+                    "array",
+                    "object",
+                    "any",
+                    "unknown",
+                    "null",
+                    "undefined",
+                ):
+                    type_name = name
+            curr = fn.child_by_field_name("object")
+            if not curr:
+                break
+        else:
+            break
+
+    if curr.type == "member_expression":
+        prop = curr.child_by_field_name("property")
+        if prop:
+            name = _text(prop, source)
+            if name in (
+                "string",
+                "number",
+                "boolean",
+                "date",
+                "array",
+                "object",
+                "any",
+                "unknown",
+                "null",
+                "undefined",
+            ):
+                type_name = name
+
+    return type_name, is_optional
+
+
+def _extract_zod_object_shape(node: Node, source: bytes) -> str | None:
+    """Extract a condensed shape from a z.object({ ... }) call."""
+    # node is expected to be the call_expression for z.object(...)
+    args = node.child_by_field_name("arguments")
+    if not args or not args.named_children:
+        return None
+
+    obj = args.named_children[0]
+    if obj.type != "object":
+        return None
+
+    fields = []
+    for child in obj.named_children:
+        if child.type == "pair":
+            key_node = child.child_by_field_name("key")
+            val_node = child.child_by_field_name("value")
+            if key_node and val_node:
+                key = _text(key_node, source)
+                z_type, is_optional = _get_zod_type(val_node, source)
+                fields.append(f"{key}{'?' if is_optional else ''}: {z_type}")
+
+    if not fields:
+        return "{}"
+    return "{ " + ", ".join(fields) + " }"
+
+
 def _leading_jsdoc(node: Node, source: bytes) -> str:
     """Return the JSDoc-style block comment immediately preceding ``node``."""
     prev = node.prev_sibling
@@ -400,12 +480,59 @@ class TypeScriptParser(BaseParser):
                     if accept:
                         module.functions.append(fn)
                 elif accept and name:
+                    type_hint = _text(type_node, source).lstrip(":").strip() if type_node else ""
+                    val_text = _text(value_node, source) if value_node else ""
+
+                    if not type_hint and val_text.startswith("z."):
+                        # Only extract shape if it doesn't use complex methods like .merge()
+                        # in the top-level chain.
+                        complex_methods = {
+                            "merge",
+                            "extend",
+                            "pick",
+                            "omit",
+                            "partial",
+                            "deepPartial",
+                        }
+                        is_complex = False
+                        curr = value_node
+                        while curr.type == "call_expression":
+                            fn = curr.child_by_field_name("function")
+                            if fn and fn.type == "member_expression":
+                                prop = fn.child_by_field_name("property")
+                                if prop and _text(prop, source) in complex_methods:
+                                    is_complex = True
+                                    break
+                                curr = fn.child_by_field_name("object")
+                            else:
+                                break
+
+                        if not is_complex:
+                            # Find the z.object call
+                            z_obj_node = None
+                            curr = value_node
+                            while curr.type == "call_expression":
+                                fn = curr.child_by_field_name("function")
+                                if fn and fn.type == "member_expression":
+                                    prop = fn.child_by_field_name("property")
+                                    if prop and _text(prop, source) == "object":
+                                        obj = fn.child_by_field_name("object")
+                                        if obj and _text(obj, source) == "z":
+                                            z_obj_node = curr
+                                            break
+                                    curr = fn.child_by_field_name("object")
+                                else:
+                                    break
+
+                            if z_obj_node:
+                                shape = _extract_zod_object_shape(z_obj_node, source)
+                                if shape:
+                                    type_hint = shape
+
                     module.constants.append(
                         ParsedConstant(
                             name=name,
-                            type_hint=(
-                                _text(type_node, source).lstrip(":").strip() if type_node else ""
-                            ),
-                            value=_text(value_node, source) if value_node else "",
+                            type_hint=type_hint,
+                            value=val_text,
                         )
                     )

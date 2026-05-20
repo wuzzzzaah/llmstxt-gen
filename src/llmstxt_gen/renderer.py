@@ -130,6 +130,12 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
                 line = f"- `{const.name}`"
                 if const.type_hint:
                     line += f": `{const.type_hint}`"
+                elif const.value.startswith("z.") or ".partial(" in const.value:
+                    # Fallback for Zod schemas that weren't condensed into type_hint
+                    val = " ".join(const.value.splitlines()).strip()
+                    if len(val) > 120:
+                        val = val[:117] + "..."
+                    line += f": `{val}`"
                 out.append(line)
             out.append("")
 
