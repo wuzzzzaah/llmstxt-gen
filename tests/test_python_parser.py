@@ -58,3 +58,19 @@ def test_python_parser_handles_function_without_docstring() -> None:
     module = parser.parse(sf)
     assert module.functions[0].docstring == ""
     assert module.functions[0].return_type == "int"
+
+
+def test_python_parser_extracts_env_vars() -> None:
+    content = """
+import os
+db_url = os.environ["DATABASE_URL"]
+api_key = os.environ.get("API_KEY")
+token = os.getenv("AUTH_TOKEN")
+"""
+    parser = PythonParser()
+    module = parser.parse(SourceFile(path=Path("test.py"), language="python", content=content))
+    assert module.env_vars == {
+        "DATABASE_URL": ["test.py"],
+        "API_KEY": ["test.py"],
+        "AUTH_TOKEN": ["test.py"],
+    }

@@ -130,6 +130,36 @@ def _find_type_identifier(node: Node) -> Node | None:
     return None
 
 
+def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
+    """Recursively find os.Getenv("VAR") references."""
+    if node.type == "call_expression":
+        fn_node = node.child_by_field_name("function")
+        if fn_node and fn_node.type == "selector_expression":
+            operand = fn_node.child_by_field_name("operand")
+            field = fn_node.child_by_field_name("field")
+            if (
+                operand
+                and field
+                and _text(operand, source) == "os"
+                and _text(field, source) == "Getenv"
+            ):
+                args = node.child_by_field_name("arguments")
+                if args and args.named_children:
+                    first_arg = args.named_children[0]
+                    if first_arg.type == "interpreted_string_literal":
+                        # Strip quotes
+                        var_name = _text(first_arg, source).strip('"')
+                        if var_name and var_name not in env_vars:
+                            env_vars[var_name] = [path]
+                    elif first_arg.type == "raw_string_literal":
+                        var_name = _text(first_arg, source).strip("`")
+                        if var_name and var_name not in env_vars:
+                            env_vars[var_name] = [path]
+
+    for child in node.children:
+        _extract_env_vars(child, source, env_vars, path)
+
+
 class GoParser(BaseParser):
     """Parse Go source via tree-sitter."""
 
@@ -227,6 +257,8 @@ class GoParser(BaseParser):
                     methods=methods,
                 )
             )
+
+        _extract_env_vars(root, source, module.env_vars, module.path)
 
         return module
 

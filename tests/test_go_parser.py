@@ -97,3 +97,20 @@ def test_go_parser_handles_variadic_parameters() -> None:
     fn = module.functions[0]
     assert fn.parameters[0].name == "...args"
     assert fn.parameters[0].type_hint == "...string"
+
+
+def test_go_parser_extracts_env_vars() -> None:
+    content = """
+package main
+import "os"
+func main() {
+    val := os.Getenv("FOO_BAR")
+    other := os.Getenv(`BAZ_QUX`)
+}
+"""
+    parser = GoParser()
+    module = parser.parse(SourceFile(path=Path("main.go"), language="go", content=content))
+    assert module.env_vars == {
+        "FOO_BAR": ["main.go"],
+        "BAZ_QUX": ["main.go"],
+    }
