@@ -1,6 +1,8 @@
 from pathlib import Path
+
 from llmstxt_gen.parsers.swift import SwiftParser
 from llmstxt_gen.walker import SourceFile
+
 
 def test_swift_parser_comprehensive():
     content = """
@@ -78,6 +80,7 @@ fileprivate func hidden() {}
     # Private
     assert any(c.name == "Internal" for c in module.classes)
     assert any(f.name == "hidden" for f in module.functions)
+
 
 def test_swift_parser_private_filtered():
     content = "private func secret() {}"

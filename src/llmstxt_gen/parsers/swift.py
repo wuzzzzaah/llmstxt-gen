@@ -76,7 +76,10 @@ def _get_doc(node: Node, source: bytes) -> str:
                 text = _text(child, source).strip()
                 if text.startswith("/**"):
                     docs.append(text[3:-2].strip())
-            elif child.type not in ("comment", "multiline_comment", "import_declaration") and child.is_named:
+            elif (
+                child.type not in ("comment", "multiline_comment", "import_declaration")
+                and child.is_named
+            ):
                 break
 
     return "\n".join(docs).strip()
