@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from llmstxt_gen.config import LlmsTxtConfig
-from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule
+from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule, ParsedRoute
 
 _ANCHOR_RE = re.compile(r"[^a-z0-9]+")
 
@@ -133,4 +133,21 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
                 out.append(line)
             out.append("")
 
+        if module.routes:
+            out.append("### Routes")
+            out.append("")
+            for route in module.routes:
+                out.append(_format_route(route))
+            out.append("")
+
     return "\n".join(out)
+
+
+def _format_route(route: ParsedRoute) -> str:
+    """Render a single route as a Markdown list item."""
+    line = f"- `{route.method} {route.path}`"
+    if route.handler and route.handler not in ("default",):
+        line += f" → `{route.handler}`"
+    if route.docstring:
+        line += f" — {route.docstring}"
+    return line
