@@ -1,4 +1,6 @@
+import typing
 from pathlib import Path
+from unittest.mock import patch
 
 from llmstxt_gen.config import LlmsTxtConfig
 from llmstxt_gen.walker import detect_language, walk_repository
@@ -50,3 +52,41 @@ def test_walker_finds_go_fixture(sample_go_root: Path) -> None:
     )
     files = list(walk_repository(cfg))
     assert {f.path.name for f in files} == {"main.go"}
+
+
+def test_walker_skips_oserror_files(sample_python_root: Path) -> None:
+    cfg = LlmsTxtConfig(root=sample_python_root, languages=["python"], extensions=[".py"])
+
+    # We want to skip calculator.py but keep __init__.py
+    original_read_text = Path.read_text
+
+    def side_effect(self: Path, *args: typing.Any, **kwargs: typing.Any) -> str:
+        if self.name == "calculator.py":
+            raise OSError("Simulated OS error")
+        return original_read_text(self, *args, **kwargs)
+
+    with patch.object(Path, "read_text", autospec=True, side_effect=side_effect):
+        files = list(walk_repository(cfg))
+
+    names = {f.path.name for f in files}
+    assert "calculator.py" not in names
+    assert "__init__.py" in names
+
+
+def test_walker_skips_unicode_decode_error_files(sample_python_root: Path) -> None:
+    cfg = LlmsTxtConfig(root=sample_python_root, languages=["python"], extensions=[".py"])
+
+    # We want to skip calculator.py but keep __init__.py
+    original_read_text = Path.read_text
+
+    def side_effect(self: Path, *args: typing.Any, **kwargs: typing.Any) -> str:
+        if self.name == "calculator.py":
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+        return original_read_text(self, *args, **kwargs)
+
+    with patch.object(Path, "read_text", autospec=True, side_effect=side_effect):
+        files = list(walk_repository(cfg))
+
+    names = {f.path.name for f in files}
+    assert "calculator.py" not in names
+    assert "__init__.py" in names
