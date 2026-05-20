@@ -85,6 +85,51 @@ class ParsedModule:
     routes: list[ParsedRoute] = field(default_factory=list)
 
 
+def clean_docstring(raw: str) -> str:
+    """Clean a docstring by removing comment markers and normalizing whitespace.
+
+    Handles:
+    - Javadoc/JSDoc/Doxygen: /** ... */
+    - Block comments: /* ... */
+    - Triple-slash: /// ... or //! ...
+    - Double-slash: // ...
+    - Hash: # ...
+
+    Leading asterisks on each line are also removed.
+    """
+    if not raw:
+        return ""
+
+    raw = raw.strip()
+
+    # Handle block comments markers at start/end
+    if raw.startswith("/**"):
+        raw = raw[3:]
+    elif raw.startswith("/*"):
+        raw = raw[2:]
+
+    if raw.endswith("*/"):
+        raw = raw[:-2]
+
+    lines = raw.splitlines()
+    cleaned = []
+    for line in lines:
+        line = line.strip()
+        # Remove common comment markers
+        if line.startswith("///") or line.startswith("//!"):
+            line = line[3:]
+        elif line.startswith("//"):
+            line = line[2:]
+        elif line.startswith("#"):
+            line = line[1:]
+        elif line.startswith("*"):
+            line = line.lstrip("*")
+
+        cleaned.append(line.strip())
+
+    return "\n".join(cleaned).strip()
+
+
 class BaseParser(ABC):
     """Abstract parser interface implemented by every language backend."""
 

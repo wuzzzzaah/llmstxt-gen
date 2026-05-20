@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -73,13 +74,8 @@ def _get_doc(node: Node, source: bytes) -> str:
     # They are separate nodes in tree-sitter-go.
     while prev and prev.type == _COMMENT:
         text = _text(prev, source).strip()
-        if text.startswith("//"):
-            docs.insert(0, text[2:].strip())
-        elif text.startswith("/*"):
-            # Multi-line comment /* ... */
-            inner = text[2:-2].strip()
-            lines = [ln.strip().lstrip("*").strip() for ln in inner.splitlines()]
-            docs.insert(0, "\n".join(ln for ln in lines if ln))
+        if text.startswith("//") or text.startswith("/*"):
+            docs.insert(0, clean_docstring(text))
         prev = prev.prev_sibling
     return "\n".join(docs).strip()
 

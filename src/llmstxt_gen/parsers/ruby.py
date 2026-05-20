@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    clean_docstring,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -56,7 +57,7 @@ def _get_doc(node: Node, source: bytes) -> str:
         if curr.type == _COMMENT:
             text = _text(curr, source).strip()
             if text.startswith("#"):
-                docs.insert(0, text[1:].strip())
+                docs.insert(0, clean_docstring(text))
         curr = curr.prev_sibling
     return "\n".join(docs).strip()
 
