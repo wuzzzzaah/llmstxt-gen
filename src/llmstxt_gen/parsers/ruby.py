@@ -196,15 +196,15 @@ class RubyParser(BaseParser):
                                     "attr_writer",
                                     "attr_accessor",
                                 ) and (self.include_private or not is_private):
-                                        functions.append(
-                                            ParsedFunction(
-                                                name=f"{name}=",
-                                                parameters=[ParsedParameter(name="value")],
-                                                docstring=docstring,
-                                                is_private=is_private,
-                                                line=child.start_point[0] + 1,
-                                            )
+                                    functions.append(
+                                        ParsedFunction(
+                                            name=f"{name}=",
+                                            parameters=[ParsedParameter(name="value")],
+                                            docstring=docstring,
+                                            is_private=is_private,
+                                            line=child.start_point[0] + 1,
                                         )
+                                    )
                 elif method_name in ("include", "extend", "prepend"):
                     # These might be handled in _parse_class_or_module if it recurses
                     # But if we are already in a class, we might want to collect them.
@@ -260,7 +260,9 @@ class RubyParser(BaseParser):
                                 bases.append(f"{m_name}({_text(arg, source)})")
 
             # Now parse the rest of the body
-            temp_classes: list[ParsedClass] = [] # Ruby doesn't usually nest classes in a way we want to flatten here?
+            temp_classes: list[
+                ParsedClass
+            ] = []  # Ruby doesn't usually nest classes in a way we want to flatten here?
             # Actually we should probably just recurse and attach them somewhere.
             # Base classes/modules can have nested ones.
             self._parse_body(body, source, methods, temp_classes, class_vars)

@@ -16,7 +16,7 @@ llmstxt-gen reads all of its options from your `pyproject.toml` under the `[tool
 |---|---|---|---|
 | `include` | list of strings | empty (entire repo) | Directories or glob patterns to scan. When set, only files matching one of these patterns are considered. |
 | `exclude` | list of strings | empty | Additional patterns to skip, evaluated after the `.gitignore` rules already in effect. |
-| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rb", ".java", ".cs", ".rs", ".php"]` | File extensions to consider. Files with any other extension are ignored. |
+| `extensions` | list of strings | `[".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".java", ".cs", ".scala", ".sc"]` | File extensions to consider. Files with any other extension are ignored. |
 
 Patterns use the same syntax as `.gitignore` (gitwildmatch).
 
@@ -32,10 +32,10 @@ Patterns use the same syntax as `.gitignore` (gitwildmatch).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `include_private` | bool | `false` | Include symbols whose names begin with an underscore (Python) or are not exported (JS/TS/Go). |
+| `include_private` | bool | `false` | Include private or non-exported symbols. |
 | `max_tokens_summary` | int | `8000` | Soft token budget for the summary file. The pruner reduces output to fit. |
 | `max_tokens_full` | int | `32000` | Soft token budget for the full file. |
-| `languages` | list of strings | `["python", "typescript", "go", "java", "ruby", "csharp", "rust", "php"]` | Parsers to activate. Supported values: `python`, `typescript`, `go`, `java`, `ruby`, `csharp`, `rust`, `php`. |
+| `languages` | list of strings | `["python", "typescript", "go", "ruby", "java", "csharp", "rust", "scala"]` | Parsers to activate. Supported values: `python`, `typescript`, `go`, `ruby`, `java`, `csharp`, `rust`, `scala`. |
 
 ## A worked example
 
