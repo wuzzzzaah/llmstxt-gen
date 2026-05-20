@@ -108,3 +108,18 @@ export const other = z.string();
         == "{ title: string, description?: string, age?: number, isActive: boolean }"
     )
     assert constants["other"].type_hint == ""  # Not an object, no condensed shape
+
+
+def test_typescript_parser_extracts_env_vars() -> None:
+    content = """
+const url = process.env.SUPABASE_URL;
+const key = process.env["SUPABASE_KEY"];
+const other = process.env.OTHER_VAR;
+"""
+    parser = TypeScriptParser()
+    module = parser.parse(SourceFile(path=Path("test.ts"), language="typescript", content=content))
+    assert module.env_vars == {
+        "SUPABASE_URL": ["test.ts"],
+        "SUPABASE_KEY": ["test.ts"],
+        "OTHER_VAR": ["test.ts"],
+    }

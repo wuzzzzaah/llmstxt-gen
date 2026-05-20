@@ -222,6 +222,61 @@ def _maybe_module_constant(stmt: Node, source: bytes, out: list[ParsedConstant])
     _maybe_class_var(stmt, source, out)
 
 
+def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
+    """Recursively find os.environ[VAR], os.environ.get(VAR), os.getenv(VAR)."""
+    if node.type == "subscript":
+        # os.environ["VAR"]
+        value_node = node.child_by_field_name("value")
+        if value_node and value_node.type == "attribute":
+            obj = value_node.child_by_field_name("object")
+            attr = value_node.child_by_field_name("attribute")
+            if (
+                obj
+                and attr
+                and _text(obj, source) == "os"
+                and _text(attr, source) == "environ"
+            ):
+                subscript = node.child_by_field_name("subscript")
+                if subscript and subscript.type == "string":
+                    var_name = _extract_string_literal(subscript, source)
+                    if var_name and var_name not in env_vars:
+                        env_vars[var_name] = [path]
+    elif node.type == "call":
+        # os.environ.get("VAR") or os.getenv("VAR")
+        fn_node = node.child_by_field_name("function")
+        if fn_node and fn_node.type == "attribute":
+            obj = fn_node.child_by_field_name("object")
+            attr = fn_node.child_by_field_name("attribute")
+            if obj and attr:
+                obj_text = _text(obj, source)
+                attr_text = _text(attr, source)
+                is_env_get = False
+                if obj_text == "os" and attr_text == "getenv":
+                    is_env_get = True
+                elif attr_text == "get" and obj.type == "attribute":
+                    inner_obj = obj.child_by_field_name("object")
+                    inner_attr = obj.child_by_field_name("attribute")
+                    if (
+                        inner_obj
+                        and inner_attr
+                        and _text(inner_obj, source) == "os"
+                        and _text(inner_attr, source) == "environ"
+                    ):
+                        is_env_get = True
+
+                if is_env_get:
+                    args = node.child_by_field_name("arguments")
+                    if args and args.named_children:
+                        first_arg = args.named_children[0]
+                        if first_arg.type == "string":
+                            var_name = _extract_string_literal(first_arg, source)
+                            if var_name and var_name not in env_vars:
+                                env_vars[var_name] = [path]
+
+    for child in node.children:
+        _extract_env_vars(child, source, env_vars, path)
+
+
 class PythonParser(BaseParser):
     """Parse Python source via tree-sitter."""
 
@@ -259,5 +314,7 @@ class PythonParser(BaseParser):
                     module.classes.append(cls)
             elif child.type == _EXPRESSION_STATEMENT:
                 _maybe_module_constant(child, source, module.constants)
+
+        _extract_env_vars(root, source, module.env_vars, module.path)
 
         return module

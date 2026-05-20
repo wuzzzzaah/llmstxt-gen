@@ -292,6 +292,50 @@ def _extract_express_routes(root: Node, source: bytes) -> list[ParsedRoute]:
     return routes
 
 
+def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
+    """Recursively find process.env.VAR and process.env["VAR"] references."""
+    if node.type == "member_expression":
+        # process.env.VAR
+        obj = node.child_by_field_name("object")
+        prop = node.child_by_field_name("property")
+        if obj and prop and prop.type == "property_identifier":
+            if obj.type == "member_expression":
+                inner_obj = obj.child_by_field_name("object")
+                inner_prop = obj.child_by_field_name("property")
+                if (
+                    inner_obj
+                    and inner_prop
+                    and _text(inner_obj, source) == "process"
+                    and _text(inner_prop, source) == "env"
+                ):
+                    var_name = _text(prop, source)
+                    if var_name not in env_vars:
+                        env_vars[var_name] = [path]
+    elif node.type == "subscript_expression":
+        # process.env["VAR"]
+        obj = node.child_by_field_name("object")
+        index = node.child_by_field_name("index")
+        if obj and index and index.type == "string" and obj.type == "member_expression":
+            inner_obj = obj.child_by_field_name("object")
+            inner_prop = obj.child_by_field_name("property")
+            if (
+                inner_obj
+                and inner_prop
+                and _text(inner_obj, source) == "process"
+                and _text(inner_prop, source) == "env"
+            ):
+                # Extract string content
+                var_name = ""
+                for child in index.named_children:
+                    if child.type == "string_fragment":
+                        var_name += _text(child, source)
+                if var_name and var_name not in env_vars:
+                    env_vars[var_name] = [path]
+
+    for child in node.children:
+        _extract_env_vars(child, source, env_vars, path)
+
+
 def _infer_nextjs_routes(
     root: Node, source: bytes, file_path: Any
 ) -> list[ParsedRoute]:
@@ -317,8 +361,11 @@ def _infer_nextjs_routes(
     parts = parts[:-1]
     # Strip everything up to and including the "app" directory (Next.js App
     # Router root).  Works for both relative and absolute paths.
+    # Use rindex-like logic to find the LAST "app" segment, as absolute paths might
+    # contain "app" earlier in the path (e.g. /app/tests/...).
     try:
-        app_idx = parts.index("app")
+        # list doesn't have rindex, so we find it manually
+        app_idx = len(parts) - 1 - parts[::-1].index("app")
         parts = parts[app_idx + 1 :]
     except ValueError:
         pass
@@ -422,6 +469,9 @@ class TypeScriptParser(BaseParser):
         # Route extraction: Express and Next.js App Router
         module.routes.extend(_extract_express_routes(root, source))
         module.routes.extend(_infer_nextjs_routes(root, source, source_file.path))
+
+        # Environment variable extraction
+        _extract_env_vars(root, source, module.env_vars, module.path)
 
         return module
 

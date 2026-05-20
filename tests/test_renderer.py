@@ -120,3 +120,28 @@ def test_render_full_handles_zod_constants() -> None:
     # Truncates long values
     assert "..." in out
     assert len(next(line for line in out.splitlines() if "complexSchema" in line)) < 150
+
+
+def test_render_full_includes_env_vars_table() -> None:
+    modules = [
+        ParsedModule(
+            name="a",
+            path="src/a.ts",
+            language="typescript",
+            env_vars={"SUPABASE_URL": ["src/a.ts"], "API_KEY": ["src/a.ts"]},
+        ),
+        ParsedModule(
+            name="b",
+            path="src/b.py",
+            language="python",
+            env_vars={"SUPABASE_URL": ["src/b.py"], "DB_URL": ["src/b.py"]},
+        ),
+    ]
+    cfg = LlmsTxtConfig(name="test")
+    out = render_full(modules, cfg)
+
+    assert "## Environment Variables" in out
+    assert "| Variable | Files |" in out
+    assert "| `SUPABASE_URL` | `src/a.ts`, `src/b.py` |" in out
+    assert "| `API_KEY` | `src/a.ts` |" in out
+    assert "| `DB_URL` | `src/b.py` |" in out

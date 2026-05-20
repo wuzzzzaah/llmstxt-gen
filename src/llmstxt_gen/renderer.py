@@ -85,6 +85,22 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     if config.description:
         out.extend([f"> {config.description}", ""])
 
+    # Aggregate environment variables
+    all_env_vars: dict[str, set[str]] = {}
+    for module in modules:
+        for var, paths in module.env_vars.items():
+            all_env_vars.setdefault(var, set()).update(paths)
+
+    if all_env_vars:
+        out.append("## Environment Variables")
+        out.append("")
+        out.append("| Variable | Files |")
+        out.append("|---|---|")
+        for var in sorted(all_env_vars.keys()):
+            files = ", ".join(f"`{p}`" for p in sorted(all_env_vars[var]))
+            out.append(f"| `{var}` | {files} |")
+        out.append("")
+
     for module in modules:
         anchor = _slug(module.path)
         out.append(f"## {module.path}")
