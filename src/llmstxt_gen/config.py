@@ -22,6 +22,11 @@ DEFAULT_EXTENSIONS: tuple[str, ...] = (
     ".rb",
     ".java",
     ".cs",
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
 )
 DEFAULT_LANGUAGES: tuple[str, ...] = (
     "python",
@@ -31,6 +36,7 @@ DEFAULT_LANGUAGES: tuple[str, ...] = (
     "ruby",
     "java",
     "csharp",
+    "cpp",
 )
 
 

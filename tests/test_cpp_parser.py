@@ -1,7 +1,8 @@
 from pathlib import Path
-import pytest
+
 from llmstxt_gen.parsers.cpp import CppParser
 from llmstxt_gen.walker import SourceFile
+
 
 def test_parse_c_functions():
     content = """

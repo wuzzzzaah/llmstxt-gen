@@ -98,6 +98,7 @@ class CppParser(BaseParser):
         current_class: ParsedClass | None = None,
         default_visibility: str = "public",
     ) -> None:
+        # Default visibility
         visibility = default_visibility
 
         for node in nodes:
@@ -118,7 +119,7 @@ class CppParser(BaseParser):
                         actual_node = child
 
             if actual_node.type == "access_specifier":
-                visibility = _text(actual_node, source).strip()
+                visibility = _text(actual_node, source).strip().rstrip(":")
                 continue
 
             if actual_node.type == "field_declaration_list":
