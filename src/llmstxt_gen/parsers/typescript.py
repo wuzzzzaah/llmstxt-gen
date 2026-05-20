@@ -162,9 +162,7 @@ class TypeScriptParser(BaseParser):
             name=source_file.path.stem,
             path=str(source_file.path),
             language=source_file.language,
-            docstring=_leading_jsdoc(root.named_children[0], source)
-            if root.named_children
-            else "",
+            docstring=_leading_jsdoc(root.named_children[0], source) if root.named_children else "",
         )
 
         for child in root.named_children:
