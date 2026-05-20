@@ -18,3 +18,13 @@ def sample_typescript_root() -> Path:
 @pytest.fixture
 def sample_go_root() -> Path:
     return FIXTURES / "sample_go"
+
+
+@pytest.fixture
+def sample_express_root() -> Path:
+    return FIXTURES / "sample_express"
+
+
+@pytest.fixture
+def sample_nextjs_root() -> Path:
+    return FIXTURES / "sample_nextjs"

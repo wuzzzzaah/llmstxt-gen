@@ -54,7 +54,7 @@ def _extract_string_literal(node: Node, source: bytes) -> str:
         if raw.startswith(quote) and raw.endswith(quote) and len(raw) >= 2 * len(quote):
             raw = raw[len(quote) : -len(quote)]
             break
-    return raw.strip()
+    return raw
 
 
 def _module_docstring(root: Node, source: bytes) -> str:
