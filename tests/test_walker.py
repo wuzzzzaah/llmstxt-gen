@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from llmstxt_gen.config import LlmsTxtConfig
-from llmstxt_gen.walker import detect_language, walk_repository
+from llmstxt_gen.walker import _load_gitignore, detect_language, walk_repository
 
 
 def test_detect_language_recognises_supported_extensions() -> None:
@@ -90,3 +90,27 @@ def test_walker_skips_unicode_decode_error_files(sample_python_root: Path) -> No
     names = {f.path.name for f in files}
     assert "calculator.py" not in names
     assert "__init__.py" in names
+
+
+def test_load_gitignore_no_file(tmp_path: Path) -> None:
+    spec = _load_gitignore(tmp_path)
+    assert not spec.match_file("any.log")
+    assert not spec.match_file("src/main.py")
+
+
+def test_load_gitignore_with_single_pattern(tmp_path: Path) -> None:
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("*.log")
+    spec = _load_gitignore(tmp_path)
+    assert spec.match_file("error.log")
+    assert spec.match_file("logs/app.log")
+    assert not spec.match_file("main.py")
+
+
+def test_load_gitignore_with_multiple_patterns(tmp_path: Path) -> None:
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("*.log\nnode_modules/\n")
+    spec = _load_gitignore(tmp_path)
+    assert spec.match_file("error.log")
+    assert spec.match_file("node_modules/pkg/index.js")
+    assert not spec.match_file("src/main.py")
