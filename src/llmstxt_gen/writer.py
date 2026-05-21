@@ -10,9 +10,10 @@ from llmstxt_gen.config import LlmsTxtConfig
 def write_outputs(
     config: LlmsTxtConfig,
     summary: str,
-    full: str | None,
+    full: str | None = None,
+    mini: str | None = None,
 ) -> list[Path]:
-    """Write the summary (and optional full) document into ``config.output_dir``.
+    """Write rendered documents into ``config.output_dir``.
 
     Returns the list of paths written.
     """
@@ -28,5 +29,10 @@ def write_outputs(
         full_path = out_dir / config.output_full
         full_path.write_text(full, encoding="utf-8")
         written.append(full_path)
+
+    if mini is not None:
+        mini_path = out_dir / config.output_mini
+        mini_path.write_text(mini, encoding="utf-8")
+        written.append(mini_path)
 
     return written

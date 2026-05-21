@@ -69,6 +69,7 @@ class LlmsTxtConfig:
     output_dir: str = "."
     output_summary: str = "llms.txt"
     output_full: str = "llms-full.txt"
+    output_mini: str = "llms-mini.txt"
     include_private: bool = False
     max_tokens_summary: int = 8000
     max_tokens_full: int = 32000
@@ -117,7 +118,15 @@ def load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig:
     if not isinstance(table, dict):
         return cfg
 
-    for key in ("name", "description", "version", "output_dir", "output_summary", "output_full"):
+    for key in (
+        "name",
+        "description",
+        "version",
+        "output_dir",
+        "output_summary",
+        "output_full",
+        "output_mini",
+    ):
         if key in table and isinstance(table[key], str):
             setattr(cfg, key, table[key])
 
