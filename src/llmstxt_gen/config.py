@@ -72,6 +72,7 @@ class LlmsTxtConfig:
     output_mini: str = "llms-mini.txt"
     cache_path: str = ".llmstxt_cache.json"
     include_private: bool = False
+    smart_summaries: bool = True
     max_tokens_summary: int = 8000
     max_tokens_full: int = 32000
     languages: list[str] = field(default_factory=lambda: list(DEFAULT_LANGUAGES))
@@ -138,6 +139,8 @@ def load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig:
 
     if "include_private" in table and isinstance(table["include_private"], bool):
         cfg.include_private = table["include_private"]
+    if "smart_summaries" in table and isinstance(table["smart_summaries"], bool):
+        cfg.smart_summaries = table["smart_summaries"]
 
     for key in ("max_tokens_summary", "max_tokens_full"):
         if key in table and isinstance(table[key], int):

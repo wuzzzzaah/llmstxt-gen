@@ -108,3 +108,17 @@ def test_python_parser_extracts_routes(sample_python_root: Path) -> None:
     )
     assert put_route.path == "/items/{item_id}"
     assert patch_route.path == "/items/{item_id}"
+
+
+def test_python_parser_extracts_all_list() -> None:
+    content = """
+__all__ = ["one", "two"]
+VERSION = "1.0.0"
+"""
+    parser = PythonParser()
+    module = parser.parse(SourceFile(path=Path("test.py"), language="python", content=content))
+    names = {c.name for c in module.constants}
+    assert "__all__" in names
+    assert "VERSION" in names
+    all_const = next(c for c in module.constants if c.name == "__all__")
+    assert all_const.value == '["one", "two"]'
