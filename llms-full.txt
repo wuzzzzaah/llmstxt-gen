@@ -10,6 +10,7 @@ llmstxt-gen: AST-aware llms.txt generator.
 Public API re-exports the most commonly used entry points so that users can
 build their own pipelines on top of the library.
 
+
 ## src/llmstxt_gen/cli.py
 <a id="src-llmstxt-gen-cli-py"></a>
 
@@ -46,6 +47,7 @@ Validate that an existing ``llms.txt`` file is spec-compliant.
     contains at least one section listing modules. It exits with code ``1``
     when the file is missing or invalid.
 
+
 #### `stats(path: Annotated[Path, typer.Argument(help="Project root to scan.")] = Path("."), config: Annotated[
         Path | None,
         typer.Option("--config", help="Path to a specific pyproject.toml."),
@@ -67,6 +69,7 @@ Reads ``[tool.llmstxt_gen]`` from a project's ``pyproject.toml``. Every option h
 a sensible default so a project with no configuration still produces useful
 output.
 
+
 ### Functions
 
 #### `find_pyproject(start: Path) -> Path | None`
@@ -82,6 +85,7 @@ Load a :class:`LlmsTxtConfig` for the project rooted at ``root``.
     file is not an error: defaults are returned with ``name`` set to the
     directory name.
 
+
 ### Classes
 
 #### `LlmsTxtConfig`
@@ -92,6 +96,7 @@ Resolved configuration used by every stage of the pipeline.
 
 - `DEFAULT_EXTENSIONS`: `tuple[str, ...]`
 - `DEFAULT_LANGUAGES`: `tuple[str, ...]`
+- `DEFAULT_EXCLUDE`: `tuple[str, ...]`
 
 ## src/llmstxt_gen/parsers/__init__.py
 <a id="src-llmstxt-gen-parsers-init-py"></a>
@@ -100,6 +105,7 @@ Language parsers.
 
 Each parser converts a :class:`~llmstxt_gen.walker.SourceFile` into a
 :class:`~llmstxt_gen.parsers.base.ParsedModule`.
+
 
 ### Functions
 
@@ -115,6 +121,23 @@ Abstract base parser and shared data models.
 All language parsers produce instances of :class:`ParsedModule`. Downstream
 stages (pruner, renderer) work exclusively against these structures, which is
 what lets llmstxt-gen stay language-agnostic.
+
+
+### Functions
+
+#### `clean_docstring(raw: str) -> str`
+
+Clean a docstring by removing comment markers and normalizing whitespace.
+
+    Handles:
+    - Javadoc/JSDoc/Doxygen: /** ... */
+    - Block comments: /* ... */
+    - Triple-slash: /// ... or //! ...
+    - Double-slash: // ...
+    - Hash: # ...
+
+    Leading asterisks on each line are also removed.
+
 
 ### Classes
 
@@ -134,6 +157,10 @@ A module-level constant with a known type annotation.
 
 A class definition with its methods and class variables.
 
+#### `ParsedRoute`
+
+An HTTP route handler (Express, Next.js, etc.).
+
 #### `ParsedModule`
 
 A single source file converted to a structured representation.
@@ -149,6 +176,76 @@ Abstract parser interface implemented by every language backend.
 Parse ``source_file`` into a :class:`ParsedModule`.
 
 
+## src/llmstxt_gen/parsers/cpp.py
+<a id="src-llmstxt-gen-parsers-cpp-py"></a>
+
+C/C++ parser backed by tree-sitter-cpp.
+
+Extracts functions, classes, structs, enums, typedefs, and constants.
+Handles Doxygen-style comments and C++ visibility modifiers.
+
+
+### Classes
+
+#### `CppParser(BaseParser)`
+
+Parse C/C++ source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/csharp.py
+<a id="src-llmstxt-gen-parsers-csharp-py"></a>
+
+C# parser backed by tree-sitter.
+
+Extracts XML doc comments, public/protected classes, structs, interfaces,
+records, enums, and their members.
+
+
+### Classes
+
+#### `CSharpParser(BaseParser)`
+
+Parse C# source via tree-sitter.
+
+    C# properties map to a single ParsedFunction flagged as is_property=True.
+    Partial classes in the same file are merged.
+
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/elixir.py
+<a id="src-llmstxt-gen-parsers-elixir-py"></a>
+
+Elixir parser backed by tree-sitter.
+
+Extracts module-level docstrings, functions, macros, structs, and constants.
+Respects public/private visibility for functions and macros.
+
+
+### Classes
+
+#### `ElixirParser(BaseParser)`
+
+Parse Elixir source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
 ## src/llmstxt_gen/parsers/go.py
 <a id="src-llmstxt-gen-parsers-go-py"></a>
 
@@ -158,11 +255,79 @@ Extracts package docstrings, exported functions, structs, interfaces, and
 constants/variables. Non-exported symbols (starting with lowercase) are
 skipped unless ``include_private`` is set on the parser.
 
+
 ### Classes
 
 #### `GoParser(BaseParser)`
 
 Parse Go source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/java.py
+<a id="src-llmstxt-gen-parsers-java-py"></a>
+
+Java parser backed by tree-sitter.
+
+Extracts package Javadoc, public/protected classes, interfaces, enums, records,
+and their members. Inner classes are flattened into the module's class list
+using dotted names (e.g., ``Outer.Inner``).
+
+
+### Classes
+
+#### `JavaParser(BaseParser)`
+
+Parse Java source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/kotlin.py
+<a id="src-llmstxt-gen-parsers-kotlin-py"></a>
+
+Kotlin parser backed by tree-sitter.
+
+Extracts KDoc comments, top-level functions, classes, interfaces, objects,
+and their members. Respects the include_private flag.
+
+
+### Classes
+
+#### `KotlinParser(BaseParser)`
+
+Parse Kotlin source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/php.py
+<a id="src-llmstxt-gen-parsers-php-py"></a>
+
+PHP parser backed by tree-sitter.
+
+Extracts PHPDoc comments, public/protected classes, interfaces, traits, enums,
+and their members.
+
+
+### Classes
+
+#### `PHPParser(BaseParser)`
+
+Parse PHP source via tree-sitter.
 
 ##### Methods
 
@@ -180,6 +345,7 @@ Extracts the module docstring, top-level functions, classes, and annotated
 constants. Private symbols (``_leading_underscore``) are omitted unless the
 caller opts in via :class:`PythonParser` ``include_private``.
 
+
 ### Classes
 
 #### `PythonParser(BaseParser)`
@@ -193,14 +359,108 @@ Parse Python source via tree-sitter.
 ###### `parse(self, source_file: SourceFile) -> ParsedModule`
 
 
+## src/llmstxt_gen/parsers/ruby.py
+<a id="src-llmstxt-gen-parsers-ruby-py"></a>
+
+Ruby parser backed by tree-sitter.
+
+Extracts module-level comments, top-level methods, classes, modules, and
+constants. Expands attr_* macros into method definitions. Respects
+private/protected visibility.
+
+
+### Classes
+
+#### `RubyParser(BaseParser)`
+
+Parse Ruby source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/rust.py
+<a id="src-llmstxt-gen-parsers-rust-py"></a>
+
+Rust parser backed by tree-sitter.
+
+Extracts module doc comments, public functions, structs, enums, traits,
+impl blocks, and constants. Non-public items are omitted unless the
+caller opts in via :class:`RustParser` ``include_private``.
+
+
+### Classes
+
+#### `RustParser(BaseParser)`
+
+Parse Rust source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/scala.py
+<a id="src-llmstxt-gen-parsers-scala-py"></a>
+
+Scala parser backed by tree-sitter.
+
+Extracts ScalaDoc, classes, objects, traits, enums, methods, and members.
+Handles Scala 3 features like given instances and extension methods.
+Companion objects are merged into their associated classes.
+
+
+### Classes
+
+#### `ScalaParser(BaseParser)`
+
+Parse Scala source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
+## src/llmstxt_gen/parsers/swift.py
+<a id="src-llmstxt-gen-parsers-swift-py"></a>
+
+Swift parser backed by tree-sitter.
+
+Extracts doc comments, public/internal functions, classes, structs, enums,
+protocols, actors, and extensions. Private and fileprivate symbols are
+omitted unless the caller opts in via :class:`SwiftParser` ``include_private``.
+
+
+### Classes
+
+#### `SwiftParser(BaseParser)`
+
+Parse Swift source via tree-sitter.
+
+##### Methods
+
+###### `__init__(self, include_private: bool = False) -> None`
+
+###### `parse(self, source_file: SourceFile) -> ParsedModule`
+
+
 ## src/llmstxt_gen/parsers/typescript.py
 <a id="src-llmstxt-gen-parsers-typescript-py"></a>
 
 JavaScript/TypeScript parser backed by tree-sitter.
 
-Extracts exported functions, classes, type aliases, interfaces, and
-constants. Non-exported symbols are skipped unless ``include_private`` is
-set on the parser.
+Extracts exported functions, classes, type aliases, interfaces, constants,
+and HTTP route handlers (Express.js and Next.js App Router conventions).
+Non-exported symbols are skipped unless ``include_private`` is set on the
+parser.
+
 
 ### Classes
 
@@ -223,6 +483,7 @@ Token-aware pruning.
 Given a sequence of :class:`ParsedModule` objects, drop the lowest-priority
 content first until the rendered output is expected to fit in a token budget.
 
+
 ### Functions
 
 #### `estimate_tokens(text: str) -> int`
@@ -231,6 +492,7 @@ Estimate the number of tokens a string will consume.
 
     Uses ``tiktoken`` with the ``cl100k_base`` encoding when available, and
     falls back to a four-characters-per-token heuristic otherwise.
+
 
 #### `estimate_total_tokens(modules: list[ParsedModule]) -> int`
 
@@ -249,6 +511,7 @@ Return a deep-copied list of modules pruned to fit in ``max_tokens``.
     5. Drop top-level function docstrings.
 
     Modules, class names, and class docstrings are always preserved.
+
 
 ### Constants
 
@@ -277,6 +540,7 @@ File system walker.
 Walks a project directory yielding source files in supported languages,
 honoring ``.gitignore`` and the user's configured ``exclude`` patterns.
 
+
 ### Functions
 
 #### `detect_language(path: Path) -> str | None`
@@ -295,6 +559,7 @@ Yield :class:`SourceFile` objects for every supported file under ``config.root``
     - match a user-specified ``exclude`` pattern
     - fall outside the user's ``include`` patterns when those are set
     - contain binary content
+
 
 ### Classes
 
