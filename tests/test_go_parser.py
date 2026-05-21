@@ -37,6 +37,8 @@ def test_go_parser_extracts_interfaces(sample_go_root: Path) -> None:
     module = parser.parse(_load(sample_go_root / "main.go"))
     cls = next(c for c in module.classes if c.name == "MyInterface")
     assert "sample interface" in cls.docstring
+    # Interfaces should have empty bases according to requirements
+    assert cls.bases == []
 
 
 def test_go_parser_extracts_interface_methods(sample_go_root: Path) -> None:
@@ -45,6 +47,42 @@ def test_go_parser_extracts_interface_methods(sample_go_root: Path) -> None:
     cls = next(c for c in module.classes if c.name == "MyInterface")
     method_names = [m.name for m in cls.methods]
     assert "DoSomething" in method_names
+
+    # Verify method details
+    ds = next(m for m in cls.methods if m.name == "DoSomething")
+    assert ds.return_type == "string"
+    assert ds.docstring == "DoSomething is an interface method."
+
+
+def test_go_parser_extracts_complex_interface_methods() -> None:
+    parser = GoParser()
+    content = """
+package main
+type ComplexInterface interface {
+    // Method with params and returns
+    DoMore(a int, b string) (int, error)
+    // Simple method
+    Simple()
+}
+"""
+    sf = SourceFile(path=Path("complex.go"), language="go", content=content)
+    module = parser.parse(sf)
+    cls = next(c for c in module.classes if c.name == "ComplexInterface")
+
+    assert len(cls.methods) == 2
+
+    do_more = next(m for m in cls.methods if m.name == "DoMore")
+    assert do_more.return_type == "(int, error)"
+    assert len(do_more.parameters) == 2
+    assert do_more.parameters[0].name == "a"
+    assert do_more.parameters[0].type_hint == "int"
+    assert do_more.parameters[1].name == "b"
+    assert do_more.parameters[1].type_hint == "string"
+    assert "Method with params and returns" in do_more.docstring
+
+    simple = next(m for m in cls.methods if m.name == "Simple")
+    assert simple.return_type == ""
+    assert len(simple.parameters) == 0
 
 
 def test_go_parser_extracts_constants_and_variables(sample_go_root: Path) -> None:
