@@ -130,6 +130,28 @@ repos:
 
 ### GitHub Actions
 
+#### Using the reusable workflow (Recommended)
+
+The easiest way to keep your `llms.txt` up to date is to use the provided reusable workflow. Create `.github/workflows/llmstxt.yml` in your repository:
+
+```yaml
+name: Update llms.txt
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  llmstxt:
+    uses: wuzzzzaah/llmstxt-gen/.github/workflows/llmstxt.yml@main
+    permissions:
+      contents: write
+```
+
+#### Manual setup
+
+If you prefer to define the steps yourself:
+
 ```yaml
 name: Update llms.txt
 on:
@@ -151,6 +173,7 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: refresh llms.txt"
+          file_pattern: "llms.txt llms-full.txt"
 ```
 
 More integrations live in [docs/ci-integration.md](docs/ci-integration.md).
