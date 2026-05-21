@@ -70,6 +70,7 @@ class LlmsTxtConfig:
     output_summary: str = "llms.txt"
     output_full: str = "llms-full.txt"
     output_mini: str = "llms-mini.txt"
+    cache_path: str = ".llmstxt_cache.json"
     include_private: bool = False
     smart_summaries: bool = True
     emit_frontmatter: bool = False
@@ -128,6 +129,7 @@ def load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig:
         "output_summary",
         "output_full",
         "output_mini",
+        "cache_path",
     ):
         if key in table and isinstance(table[key], str):
             setattr(cfg, key, table[key])

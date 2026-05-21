@@ -9,6 +9,13 @@ from typing import Annotated
 
 import typer
 
+from llmstxt_gen.cache import (
+    deserialize_module,
+    get_sha256,
+    load_cache,
+    save_cache,
+    serialize_module,
+)
 from llmstxt_gen.config import LlmsTxtConfig, load_config
 from llmstxt_gen.parsers import parser_for
 from llmstxt_gen.parsers.base import ParsedModule
@@ -23,30 +30,65 @@ app = typer.Typer(
 )
 
 
-def _collect_modules(config: LlmsTxtConfig, verbose: bool = False) -> list[ParsedModule]:
+def _collect_modules(
+    config: LlmsTxtConfig,
+    verbose: bool = False,
+    incremental: bool = False,
+    no_cache: bool = False,
+) -> list[ParsedModule]:
     modules: list[ParsedModule] = []
     root = config.root.resolve()
+
+    cache_path = Path(config.output_dir) / config.cache_path
+    cache_data = {} if no_cache else load_cache(cache_path)
+    new_cache_data = {}
+
     for source_file in walk_repository(config):
-        parser = parser_for(source_file.language)
-        if parser is None:
-            continue
-        if hasattr(parser, "include_private"):
-            parser.include_private = config.include_private
         try:
-            module = parser.parse(source_file)
-        except Exception as exc:  # pragma: no cover - defensive
-            if verbose:
-                typer.echo(f"skip {source_file.path}: {exc}", err=True)
-            continue
-        try:
-            module.path = source_file.path.resolve().relative_to(root).as_posix()
+            rel_path = source_file.path.resolve().relative_to(root).as_posix()
         except ValueError:
-            module.path = str(source_file.path)
-        if verbose:
-            typer.echo(
-                f"parsed {module.path} ({len(module.functions)} fns, {len(module.classes)} classes)"
-            )
+            rel_path = str(source_file.path)
+
+        content_hash = get_sha256(source_file.content)
+        cached_entry = cache_data.get(rel_path)
+
+        if (
+            incremental
+            and cached_entry
+            and cached_entry.get("hash") == content_hash
+            and "module" in cached_entry
+        ):
+            if verbose:
+                typer.echo(f"cache hit: {rel_path}")
+            module = deserialize_module(cached_entry["module"])
+            new_cache_data[rel_path] = cached_entry
+        else:
+            parser = parser_for(source_file.language)
+            if parser is None:
+                continue
+            if hasattr(parser, "include_private"):
+                parser.include_private = config.include_private
+            try:
+                module = parser.parse(source_file)
+            except Exception as exc:  # pragma: no cover - defensive
+                if verbose:
+                    typer.echo(f"skip {source_file.path}: {exc}", err=True)
+                continue
+            module.path = rel_path
+            if verbose:
+                typer.echo(
+                    f"parsed {module.path} ({len(module.functions)} fns, {len(module.classes)} classes)"
+                )
+            new_cache_data[rel_path] = {
+                "hash": content_hash,
+                "module": serialize_module(module),
+            }
+
         modules.append(module)
+
+    if not no_cache:
+        save_cache(cache_path, new_cache_data)
+
     return modules
 
 
@@ -70,6 +112,14 @@ def generate(
         bool,
         typer.Option("--no-mini", help="Skip generating llms-mini.txt."),
     ] = False,
+    incremental: Annotated[
+        bool,
+        typer.Option("--incremental", help="Use cache to skip unchanged files."),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Disable cache entirely."),
+    ] = False,
     config: Annotated[
         Path | None,
         typer.Option("--config", help="Path to a specific pyproject.toml."),
@@ -86,7 +136,12 @@ def generate(
     if emit_frontmatter:
         cfg.emit_frontmatter = True
 
-    modules = _collect_modules(cfg, verbose=verbose)
+    modules = _collect_modules(
+        cfg,
+        verbose=verbose,
+        incremental=incremental,
+        no_cache=no_cache,
+    )
     if not modules:
         typer.echo("No source files found to parse.", err=True)
         raise typer.Exit(code=1)
@@ -195,6 +250,14 @@ def validate(
 @app.command()
 def stats(
     path: Annotated[Path, typer.Argument(help="Project root to scan.")] = Path("."),
+    incremental: Annotated[
+        bool,
+        typer.Option("--incremental", help="Use cache to skip unchanged files."),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Disable cache entirely."),
+    ] = False,
     config: Annotated[
         Path | None,
         typer.Option("--config", help="Path to a specific pyproject.toml."),
@@ -202,7 +265,11 @@ def stats(
 ) -> None:
     """Print a summary of files scanned, symbols extracted, and tokens used."""
     cfg = load_config(path, config_path=config)
-    modules = _collect_modules(cfg)
+    modules = _collect_modules(
+        cfg,
+        incremental=incremental,
+        no_cache=no_cache,
+    )
     fn_count = sum(len(m.functions) for m in modules)
     method_count = sum(len(c.methods) for m in modules for c in m.classes)
     cls_count = sum(len(m.classes) for m in modules)
