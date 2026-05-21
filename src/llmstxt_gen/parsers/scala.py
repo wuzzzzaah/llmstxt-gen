@@ -56,6 +56,7 @@ _VAR_DECLARATION = "var_declaration"
 _EXTENSION_DEFINITION = "extension_definition"
 _GIVEN_DEFINITION = "given_definition"
 _PACKAGE_CLAUSE = "package_clause"
+_IMPORT_DECLARATION = "import_declaration"
 _TYPE_IDENTIFIER = "type_identifier"
 _GENERIC_TYPE = "generic_type"
 _USER_TYPE = "user_type"
@@ -277,6 +278,12 @@ class ScalaParser(BaseParser):
                 self._parse_extension(child, source, module)
             elif child.type == _GIVEN_DEFINITION:
                 self._parse_given(child, source, module)
+            elif child.type == _IMPORT_DECLARATION:
+                # scala: (import_declaration (dotted_name) ...)
+                # or (import_declaration (wildcard_import) ...)
+                for named_child in child.named_children:
+                    if named_child.type != "import":
+                        module.imports.append(_text(named_child, source))
             elif child.type == _PACKAGE_CLAUSE:
                 self._collect_definitions(child, source, module, classes_by_name)
 

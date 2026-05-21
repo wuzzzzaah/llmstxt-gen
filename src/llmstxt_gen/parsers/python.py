@@ -39,6 +39,8 @@ _FUNCTION_DEFINITION = "function_definition"
 _CLASS_DEFINITION = "class_definition"
 _ASSIGNMENT = "assignment"
 _ASYNC = "async"
+_IMPORT_STATEMENT = "import_statement"
+_IMPORT_FROM_STATEMENT = "import_from_statement"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -395,6 +397,27 @@ class PythonParser(BaseParser):
         )
 
         for child in root.named_children:
+            if child.type == _IMPORT_STATEMENT:
+                for named_child in child.named_children:
+                    if named_child.type == "dotted_name":
+                        module.imports.append(_text(named_child, source))
+                    elif named_child.type == "aliased_import":
+                        dotted = named_child.child_by_field_name("name")
+                        if dotted:
+                            module.imports.append(_text(dotted, source))
+                continue
+            if child.type == _IMPORT_FROM_STATEMENT:
+                module_node = child.child_by_field_name("module_name")
+                if module_node:
+                    module.imports.append(_text(module_node, source))
+                else:
+                    # check for relative_import
+                    for named_child in child.named_children:
+                        if named_child.type == "relative_import":
+                            module.imports.append(_text(named_child, source))
+                            break
+                continue
+
             target = child
             if child.type == _DECORATED_DEFINITION:
                 module.routes.extend(_extract_python_routes(child, source))

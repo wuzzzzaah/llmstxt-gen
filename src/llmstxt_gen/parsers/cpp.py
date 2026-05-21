@@ -53,6 +53,7 @@ _TYPE_IDENTIFIER = "type_identifier"
 _OPERATOR_NAME = "operator_name"
 _QUALIFIED_IDENTIFIER = "qualified_identifier"
 _DESTRUCTOR_NAME = "destructor_name"
+_PREPROC_INCLUDE = "preproc_include"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -106,6 +107,13 @@ class CppParser(BaseParser):
             language="cpp",
             docstring="",
         )
+
+        # Extract includes from root level
+        for child in root.children:
+            if child.type == _PREPROC_INCLUDE:
+                path_node = child.child_by_field_name("path")
+                if path_node:
+                    module.imports.append(_text(path_node, source).strip('<">'))
 
         self._parse_nodes(root.children, source, module)
         return module

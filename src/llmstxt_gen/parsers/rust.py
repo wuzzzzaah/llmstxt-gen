@@ -44,6 +44,7 @@ _FIELD_DECLARATION_LIST = "field_declaration_list"
 _FIELD_DECLARATION = "field_declaration"
 _ENUM_VARIANT = "enum_variant"
 _FUNCTION_SIGNATURE_ITEM = "function_signature_item"
+_USE_DECLARATION = "use_declaration"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -127,6 +128,14 @@ class RustParser(BaseParser):
         classes_by_name: dict[str, ParsedClass] = {}
 
         for child in root.named_children:
+            if child.type == _USE_DECLARATION:
+                # rust: (use_declaration argument: (scoped_identifier))
+                # or (use_declaration argument: (use_list))
+                arg = child.child_by_field_name("argument")
+                if arg:
+                    module.imports.append(_text(arg, source))
+                continue
+
             if child.type == _FUNCTION_ITEM:
                 fn = self._parse_function(child, source)
                 if self.include_private or _is_public(child):

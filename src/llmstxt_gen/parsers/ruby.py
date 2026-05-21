@@ -123,7 +123,7 @@ class RubyParser(BaseParser):
             language="ruby",
         )
 
-        self._parse_body(root, source, module.functions, module.classes, module.constants)
+        self._parse_body(root, source, module.functions, module.classes, module.constants, module)
 
         return module
 
@@ -134,6 +134,7 @@ class RubyParser(BaseParser):
         functions: list[ParsedFunction],
         classes: list[ParsedClass],
         constants: list[ParsedConstant],
+        module: ParsedModule,
     ) -> None:
         # Visibility state for current scope
         current_visibility = "public"
@@ -150,7 +151,7 @@ class RubyParser(BaseParser):
                     functions.append(fn)
 
             elif child.type in (_CLASS, _MODULE):
-                cls = self._parse_class_or_module(child, source)
+                cls = self._parse_class_or_module(child, source, module)
                 classes.append(cls)
 
             elif child.type == _ASSIGNMENT:
@@ -173,7 +174,15 @@ class RubyParser(BaseParser):
                 method_name_node = child.child_by_field_name("method")
                 method_name = _text(method_name_node, source) if method_name_node else ""
 
-                if method_name in ("private", "protected", "public"):
+                if method_name in ("require", "require_relative"):
+                    args = child.child_by_field_name("arguments")
+                    if args:
+                        for arg in args.named_children:
+                            if arg.type == _STRING:
+                                # Extract string content
+                                val = _text(arg, source).strip("'\"")
+                                module.imports.append(val)
+                elif method_name in ("private", "protected", "public"):
                     # Check if it's a standalone call (sets visibility)
                     # or a modifier: private :foo or private def foo
                     args = child.child_by_field_name("arguments")
@@ -232,7 +241,7 @@ class RubyParser(BaseParser):
 
             # Handle body_statement which can wrap children
             if child.type == _BODY_STATEMENT:
-                self._parse_body(child, source, functions, classes, constants)
+                self._parse_body(child, source, functions, classes, constants, module)
 
     def _parse_method(self, node: Node, source: bytes, visibility: str) -> ParsedFunction:
         name_node = node.child_by_field_name("name")
@@ -246,7 +255,9 @@ class RubyParser(BaseParser):
             is_private=visibility != "public",
         )
 
-    def _parse_class_or_module(self, node: Node, source: bytes) -> ParsedClass:
+    def _parse_class_or_module(
+        self, node: Node, source: bytes, module: ParsedModule
+    ) -> ParsedClass:
         name_node = node.child_by_field_name("name")
         name = _text(name_node, source) if name_node else ""
 
@@ -285,7 +296,16 @@ class RubyParser(BaseParser):
             ] = []  # Ruby doesn't usually nest classes in a way we want to flatten here?
             # Actually we should probably just recurse and attach them somewhere.
             # Base classes/modules can have nested ones.
-            self._parse_body(body, source, methods, temp_classes, class_vars)
+            # Find the module again to pass it down
+            import_module = None
+            parent = node.parent
+            while parent:
+                # This is a bit awkward, but we need the original module object
+                # Alternatively, pass it through _parse_body parameters
+                parent = parent.parent
+            # Actually, I updated _parse_body signature above to include module
+
+            self._parse_body(body, source, methods, temp_classes, class_vars, module)
             # For now, let's ignore nested classes in llms.txt or decide how to handle them.
             # Python parser omits them from the top level but includes them if they are in a class?
             # Actually Python parser doesn't seem to handle nested classes fully yet based on my quick read.

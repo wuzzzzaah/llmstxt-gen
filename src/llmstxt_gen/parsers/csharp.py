@@ -143,6 +143,7 @@ class CSharpParser(BaseParser):
             language="csharp",
         )
 
+        self._extract_imports(root, source, module)
         self._collect_members(root, source, module)
         return module
 
@@ -298,6 +299,22 @@ class CSharpParser(BaseParser):
             parent.functions.append(fn)
         else:
             parent.methods.append(fn)
+
+    def _extract_imports(self, node: Node, source: bytes, module: ParsedModule) -> None:
+        """Extract using directives from the module."""
+        for child in node.named_children:
+            if child.type == _USING_DIRECTIVE:
+                name_node = child.child_by_field_name("name")
+                if name_node:
+                    module.imports.append(_text(name_node, source))
+            elif child.type in (_NAMESPACE_DECLARATION, _FILE_SCOPED_NAMESPACE_DECLARATION):
+                # Usings can also be inside namespaces
+                if child.type == _NAMESPACE_DECLARATION:
+                    body = child.child_by_field_name("body")
+                    if body:
+                        self._extract_imports(body, source, module)
+                else:
+                    self._extract_imports(child, source, module)
 
     def _parse_property(
         self, node: Node, source: bytes, parent: ParsedModule | ParsedClass

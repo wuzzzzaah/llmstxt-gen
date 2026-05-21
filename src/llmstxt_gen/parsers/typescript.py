@@ -50,6 +50,9 @@ _VARIABLE_DECLARATOR = "variable_declarator"
 _ARROW_FUNCTION = "arrow_function"
 _FUNCTION_EXPRESSION = "function_expression"
 _ASYNC = "async"
+_IMPORT_STATEMENT = "import_statement"
+_CALL_EXPRESSION = "call_expression"
+_IMPORT = "import"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -468,6 +471,7 @@ class TypeScriptParser(BaseParser):
 
         for child in root.named_children:
             self._handle_top_level(child, source, module, exported=False)
+            self._extract_imports(child, source, module)
 
         # Route extraction: Express and Next.js App Router
         module.routes.extend(_extract_express_routes(root, source))
@@ -618,3 +622,25 @@ class TypeScriptParser(BaseParser):
                             value=val_text,
                         )
                     )
+
+    def _extract_imports(self, node: Node, source: bytes, module: ParsedModule) -> None:
+        """Extract imports from import statements and require/import calls."""
+        if node.type == _IMPORT_STATEMENT:
+            source_node = node.child_by_field_name("source")
+            if source_node:
+                module.imports.append(_text(source_node, source).strip("'\""))
+        elif node.type == _CALL_EXPRESSION:
+            fn_node = node.child_by_field_name("function")
+            if fn_node:
+                fn_text = _text(fn_node, source)
+                if fn_text == "require" or fn_node.type == _IMPORT:
+                    args_node = node.child_by_field_name("arguments")
+                    if args_node and args_node.named_child_count > 0:
+                        arg = args_node.named_children[0]
+                        if arg.type == "string":
+                            module.imports.append(_text(arg, source).strip("'\""))
+
+        for child in node.named_children:
+            # require() and import() might be nested in expressions
+            if node.type != _IMPORT_STATEMENT:
+                self._extract_imports(child, source, module)

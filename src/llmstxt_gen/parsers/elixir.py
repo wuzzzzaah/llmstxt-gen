@@ -69,7 +69,7 @@ class ElixirParser(BaseParser):
             language="elixir",
         )
 
-        self._parse_nodes(root, source, module.functions, module.classes, module.constants)
+        self._parse_nodes(root, source, module.functions, module.classes, module.constants, module)
 
         return module
 
@@ -80,6 +80,7 @@ class ElixirParser(BaseParser):
         functions: list[ParsedFunction],
         classes: list[ParsedClass],
         constants: list[ParsedConstant],
+        module: ParsedModule,
     ) -> None:
         last_doc = ""
         last_spec_params: list[ParsedParameter] | None = None
@@ -95,8 +96,14 @@ class ElixirParser(BaseParser):
 
                 target_text = _text(target, source)
 
+                if target_text in ("alias", "import", "require", "use"):
+                    args = child.child_by_field_name("arguments")
+                    if args:
+                        # Extract the first argument as the import path/module
+                        module.imports.append(_text(args.named_children[0], source))
+
                 if target_text in ("defmodule", "defprotocol", "defimpl"):
-                    cls = self._parse_module_like(child, source)
+                    cls = self._parse_module_like(child, source, module)
                     if cls:
                         classes.append(cls)
                     last_doc = ""
@@ -142,7 +149,9 @@ class ElixirParser(BaseParser):
             if fn._heads_count > 1:
                 fn.name = f"{fn.name} (+{fn._heads_count - 1} heads)"
 
-    def _parse_module_like(self, node: Node, source: bytes) -> ParsedClass | None:
+    def _parse_module_like(
+        self, node: Node, source: bytes, module: ParsedModule
+    ) -> ParsedClass | None:
         args = node.child_by_field_name("arguments")
         if not args and node.named_child_count > 1:
             args = node.named_children[1]
@@ -179,6 +188,11 @@ class ElixirParser(BaseParser):
                     if not target:
                         continue
                     target_text = _text(target, source)
+
+                    if target_text in ("alias", "import", "require", "use"):
+                        args = child.child_by_field_name("arguments")
+                        if args:
+                            module.imports.append(_text(args.named_children[0], source))
 
                     if target_text in ("def", "defmacro", "defp", "defmacrop"):
                         is_private = target_text in ("defp", "defmacrop")

@@ -267,6 +267,14 @@ class KotlinParser(BaseParser):
                 module.docstring = _get_kdoc(first_child, source)
 
         for child in root.named_children:
+            if child.type == "import_header":
+                # kotlin: (import_header (identifier) [(import_alias)] [(asterisk)])
+                # or (import_header (user_type))
+                for named_child in child.named_children:
+                    if named_child.type not in ("import", "import_alias", "*"):
+                        module.imports.append(_text(named_child, source))
+                continue
+
             if child.type == "function_declaration":
                 fn = _parse_function(child, source)
                 if self.include_private or not fn.is_private:
