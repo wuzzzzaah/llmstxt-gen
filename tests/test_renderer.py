@@ -181,3 +181,78 @@ def test_render_full_includes_env_vars_table() -> None:
     assert "| `SUPABASE_URL` | `src/a.ts`, `src/b.py` |" in out
     assert "| `API_KEY` | `src/a.ts` |" in out
     assert "| `DB_URL` | `src/b.py` |" in out
+
+
+def test_render_summary_nextjs_heuristic() -> None:
+    from llmstxt_gen.parsers.base import ParsedRoute
+    module = ParsedModule(
+        name="page",
+        path="app/dashboard/page.tsx",
+        language="typescript",
+        routes=[ParsedRoute(method="GET", path="/dashboard", handler="default")],
+    )
+    cfg = LlmsTxtConfig()
+    out = render_summary([module], cfg)
+    assert ": Page component at /dashboard." in out
+
+
+def test_render_summary_routes_heuristic() -> None:
+    from llmstxt_gen.parsers.base import ParsedRoute
+    module = ParsedModule(
+        name="api",
+        path="src/api.py",
+        language="python",
+        routes=[ParsedRoute(method="POST", path="/login", handler="login")],
+    )
+    cfg = LlmsTxtConfig()
+    out = render_summary([module], cfg)
+    assert ": Defines HTTP routes." in out
+
+
+def test_render_summary_filename_heuristic() -> None:
+    module = ParsedModule(
+        name="utils",
+        path="src/utils.py",
+        language="python",
+        functions=[ParsedFunction(name="helper")],
+    )
+    cfg = LlmsTxtConfig()
+    out = render_summary([module], cfg)
+    assert ": Utility functions." in out
+
+
+def test_render_summary_exported_docstring_heuristic() -> None:
+    module = ParsedModule(
+        name="logic",
+        path="src/logic.py",
+        language="python",
+        functions=[ParsedFunction(name="do_work", docstring="Does heavy work.")],
+    )
+    cfg = LlmsTxtConfig()
+    out = render_summary([module], cfg)
+    assert ": Does heavy work." in out
+
+
+def test_render_summary_all_heuristic() -> None:
+    from llmstxt_gen.parsers.base import ParsedConstant
+    module = ParsedModule(
+        name="api",
+        path="src/api.py",
+        language="python",
+        constants=[ParsedConstant(name="__all__", value="['Login', 'Logout']")],
+    )
+    cfg = LlmsTxtConfig()
+    out = render_summary([module], cfg)
+    assert ": Provides Login, Logout." in out
+
+
+def test_render_summary_smart_summaries_disabled() -> None:
+    module = ParsedModule(
+        name="utils",
+        path="src/utils.py",
+        language="python",
+        functions=[ParsedFunction(name="helper")],
+    )
+    cfg = LlmsTxtConfig(smart_summaries=False)
+    out = render_summary([module], cfg)
+    assert ": Provides helper." in out

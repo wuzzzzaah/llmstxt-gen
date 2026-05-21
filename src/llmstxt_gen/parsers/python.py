@@ -208,8 +208,12 @@ def _maybe_class_var(stmt: Node, source: bytes, out: list[ParsedConstant]) -> No
     target = _child_by_field(inner, "left")
     type_node = _child_by_field(inner, "type")
     value_node = _child_by_field(inner, "right")
-    if target is None or type_node is None:
+    if target is None:
         return
+    # Module-level constants often lack type hints (e.g. __all__ = [...])
+    if type_node is None and value_node is None:
+        return
+
     out.append(
         ParsedConstant(
             name=_text(target, source),
