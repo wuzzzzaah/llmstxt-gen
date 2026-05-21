@@ -2,30 +2,27 @@
 
 > AST-aware llms.txt generator
 
-__init__: llmstxt-gen: AST-aware llms.
-cli: Typer CLI for llmstxt-gen.
-config: Configuration loading for llmstxt-gen.
-__init__: Language parsers.
-base: Abstract base parser and shared data models.
-go: Go parser backed by tree-sitter.
-python: Python parser backed by tree-sitter.
-typescript: JavaScript/TypeScript parser backed by tree-sitter.
-pruner: Token-aware pruning.
-renderer: Render parsed modules to llms.
-walker: File system walker.
-writer: Write rendered output to disk.
-
 ## Modules
 
-- [__init__](llms-full.txt#src-llmstxt-gen-init-py): llmstxt-gen: AST-aware llms.
-- [cli](llms-full.txt#src-llmstxt-gen-cli-py): Typer CLI for llmstxt-gen.
-- [config](llms-full.txt#src-llmstxt-gen-config-py): Configuration loading for llmstxt-gen.
-- [__init__](llms-full.txt#src-llmstxt-gen-parsers-init-py): Language parsers.
-- [base](llms-full.txt#src-llmstxt-gen-parsers-base-py): Abstract base parser and shared data models.
-- [go](llms-full.txt#src-llmstxt-gen-parsers-go-py): Go parser backed by tree-sitter.
-- [python](llms-full.txt#src-llmstxt-gen-parsers-python-py): Python parser backed by tree-sitter.
-- [typescript](llms-full.txt#src-llmstxt-gen-parsers-typescript-py): JavaScript/TypeScript parser backed by tree-sitter.
-- [pruner](llms-full.txt#src-llmstxt-gen-pruner-py): Token-aware pruning.
-- [renderer](llms-full.txt#src-llmstxt-gen-renderer-py): Render parsed modules to llms.
-- [walker](llms-full.txt#src-llmstxt-gen-walker-py): File system walker.
-- [writer](llms-full.txt#src-llmstxt-gen-writer-py): Write rendered output to disk.
+- [src/llmstxt_gen/__init__](llms-full.txt#src-llmstxt-gen-init-py): llmstxt-gen: AST-aware llms.
+- [src/llmstxt_gen/cli](llms-full.txt#src-llmstxt-gen-cli-py): Typer CLI for llmstxt-gen.
+- [src/llmstxt_gen/config](llms-full.txt#src-llmstxt-gen-config-py): Configuration loading for llmstxt-gen.
+- [src/llmstxt_gen/parsers/__init__](llms-full.txt#src-llmstxt-gen-parsers-init-py): Language parsers.
+- [src/llmstxt_gen/parsers/base](llms-full.txt#src-llmstxt-gen-parsers-base-py): Abstract base parser and shared data models.
+- [src/llmstxt_gen/parsers/cpp](llms-full.txt#src-llmstxt-gen-parsers-cpp-py): C/C++ parser backed by tree-sitter-cpp.
+- [src/llmstxt_gen/parsers/csharp](llms-full.txt#src-llmstxt-gen-parsers-csharp-py): C# parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/elixir](llms-full.txt#src-llmstxt-gen-parsers-elixir-py): Elixir parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/go](llms-full.txt#src-llmstxt-gen-parsers-go-py): Go parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/java](llms-full.txt#src-llmstxt-gen-parsers-java-py): Java parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/kotlin](llms-full.txt#src-llmstxt-gen-parsers-kotlin-py): Kotlin parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/php](llms-full.txt#src-llmstxt-gen-parsers-php-py): PHP parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/python](llms-full.txt#src-llmstxt-gen-parsers-python-py): Python parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/ruby](llms-full.txt#src-llmstxt-gen-parsers-ruby-py): Ruby parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/rust](llms-full.txt#src-llmstxt-gen-parsers-rust-py): Rust parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/scala](llms-full.txt#src-llmstxt-gen-parsers-scala-py): Scala parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/swift](llms-full.txt#src-llmstxt-gen-parsers-swift-py): Swift parser backed by tree-sitter.
+- [src/llmstxt_gen/parsers/typescript](llms-full.txt#src-llmstxt-gen-parsers-typescript-py): JavaScript/TypeScript parser backed by tree-sitter.
+- [src/llmstxt_gen/pruner](llms-full.txt#src-llmstxt-gen-pruner-py): Token-aware pruning.
+- [src/llmstxt_gen/renderer](llms-full.txt#src-llmstxt-gen-renderer-py): Render parsed modules to llms.
+- [src/llmstxt_gen/walker](llms-full.txt#src-llmstxt-gen-walker-py): File system walker.
+- [src/llmstxt_gen/writer](llms-full.txt#src-llmstxt-gen-writer-py): Write rendered output to disk.

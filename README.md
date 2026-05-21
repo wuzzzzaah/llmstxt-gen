@@ -118,14 +118,10 @@ max_tokens_summary = 6000
 
 ```yaml
 repos:
-  - repo: local
+  - repo: https://github.com/wuzzzzaah/llmstxt-gen
+    rev: v0.2.0
     hooks:
       - id: llmstxt-gen
-        name: llmstxt-gen
-        entry: llmstxt-gen generate
-        language: system
-        pass_filenames: false
-        always_run: true
 ```
 
 ### GitHub Actions
