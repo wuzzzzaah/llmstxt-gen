@@ -145,3 +145,26 @@ def test_render_full_includes_env_vars_table() -> None:
     assert "| `SUPABASE_URL` | `src/a.ts`, `src/b.py` |" in out
     assert "| `API_KEY` | `src/a.ts` |" in out
     assert "| `DB_URL` | `src/b.py` |" in out
+
+
+def test_renderer_enforces_budget() -> None:
+    # Use a very small budget to force pruning
+    cfg = LlmsTxtConfig(name="test", max_tokens_summary=5)
+    modules = _modules()
+    out = render_summary(modules, cfg)
+    # The project name header "# test" + "" + "## Modules" is already more than 5 tokens
+    # so we expect it to drop modules.
+    assert "## Modules" in out
+    assert "calc" not in out
+
+
+def test_render_full_enforces_budget() -> None:
+    # A slightly larger budget to allow the module to be kept but its docstring truncated
+    cfg = LlmsTxtConfig(name="test", max_tokens_full=100)
+    m = _modules()[0]
+    m.docstring = "First sentence. Second sentence."
+    # Make the module content large enough that Stage 1 is needed
+    m.functions[0].docstring = "Func first sentence. " + "Long " * 100
+    out = render_full([m], cfg)
+    assert "First sentence." in out
+    assert "Second sentence." not in out

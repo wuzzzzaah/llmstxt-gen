@@ -8,10 +8,12 @@ from typing import Annotated
 
 import typer
 
+import logging
+
 from llmstxt_gen.config import LlmsTxtConfig, load_config
 from llmstxt_gen.parsers import parser_for
 from llmstxt_gen.parsers.base import ParsedModule
-from llmstxt_gen.pruner import estimate_total_tokens, prune_modules
+from llmstxt_gen.pruner import estimate_total_tokens
 from llmstxt_gen.renderer import render_full, render_summary
 from llmstxt_gen.walker import walk_repository
 from llmstxt_gen.writer import write_outputs
@@ -75,14 +77,15 @@ def generate(
     if output_dir is not None:
         cfg.output_dir = str(output_dir)
 
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
+
     modules = _collect_modules(cfg, verbose=verbose)
     if not modules:
         typer.echo("No source files found to parse.", err=True)
         raise typer.Exit(code=1)
 
-    summary_modules = prune_modules(modules, cfg.max_tokens_summary)
-    summary = render_summary(summary_modules, cfg)
-    full = None if no_full else render_full(prune_modules(modules, cfg.max_tokens_full), cfg)
+    summary = render_summary(modules, cfg)
+    full = None if no_full else render_full(modules, cfg)
 
     if dry_run:
         typer.echo("===== llms.txt =====")
