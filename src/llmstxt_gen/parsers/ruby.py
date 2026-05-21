@@ -296,15 +296,6 @@ class RubyParser(BaseParser):
             ] = []  # Ruby doesn't usually nest classes in a way we want to flatten here?
             # Actually we should probably just recurse and attach them somewhere.
             # Base classes/modules can have nested ones.
-            # Find the module again to pass it down
-            import_module = None
-            parent = node.parent
-            while parent:
-                # This is a bit awkward, but we need the original module object
-                # Alternatively, pass it through _parse_body parameters
-                parent = parent.parent
-            # Actually, I updated _parse_body signature above to include module
-
             self._parse_body(body, source, methods, temp_classes, class_vars, module)
             # For now, let's ignore nested classes in llms.txt or decide how to handle them.
             # Python parser omits them from the top level but includes them if they are in a class?
