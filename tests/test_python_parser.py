@@ -74,3 +74,37 @@ token = os.getenv("AUTH_TOKEN")
         "API_KEY": ["test.py"],
         "AUTH_TOKEN": ["test.py"],
     }
+
+
+def test_python_parser_extracts_routes(sample_python_root: Path) -> None:
+    parser = PythonParser()
+    module = parser.parse(_load(sample_python_root / "routes.py"))
+
+    # list_users: @app.get("/users")
+    list_users = next(r for r in module.routes if r.handler == "list_users")
+    assert list_users.method == "GET"
+    assert list_users.path == "/users"
+    assert "List all users" in list_users.docstring
+
+    # create_user: @router.post("/users/{id}")
+    create_user = next(r for r in module.routes if r.handler == "create_user")
+    assert create_user.method == "POST"
+    assert create_user.path == "/users/{id}"
+
+    # legacy_route: @app.route("/legacy", methods=["GET", "POST"])
+    legacy_get = next(
+        r for r in module.routes if r.handler == "legacy_route" and r.method == "GET"
+    )
+    assert legacy_get.path == "/legacy"
+    legacy_post = next(
+        r for r in module.routes if r.handler == "legacy_route" and r.method == "POST"
+    )
+    assert legacy_post.path == "/legacy"
+
+    # update_item: @app.put("/items/{item_id}") AND @app.patch("/items/{item_id}")
+    put_route = next(r for r in module.routes if r.handler == "update_item" and r.method == "PUT")
+    patch_route = next(
+        r for r in module.routes if r.handler == "update_item" and r.method == "PATCH"
+    )
+    assert put_route.path == "/items/{item_id}"
+    assert patch_route.path == "/items/{item_id}"
