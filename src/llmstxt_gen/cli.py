@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -114,9 +115,8 @@ def validate(
 ) -> None:
     """Validate that an existing ``llms.txt`` file is spec-compliant.
 
-    The check verifies that the file begins with a level-one heading and
-    contains at least one section listing modules. It exits with code ``1``
-    when the file is missing or invalid.
+    Checks for H1 heading, optional blockquote, sections, valid links, and
+    unique anchor targets. Exits with code ``1`` if any violations are found.
     """
     target = path if path.is_file() else path / "llms.txt"
     if not target.is_file():
@@ -124,13 +124,63 @@ def validate(
         raise typer.Exit(code=1)
 
     text = target.read_text(encoding="utf-8")
-    lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
-    if not lines or not lines[0].startswith("# "):
-        typer.echo("invalid: missing top-level '# Project' heading", err=True)
+    lines = text.splitlines()
+    violations: list[str] = []
+
+    # Filter for non-empty lines but keep track of original line numbers (1-indexed)
+    non_empty_lines = [(i + 1, ln) for i, ln in enumerate(lines) if ln.strip()]
+
+    if not non_empty_lines:
+        typer.echo(f"invalid: {target} is empty", err=True)
         raise typer.Exit(code=1)
-    if not any(ln.startswith("## ") for ln in lines):
-        typer.echo("invalid: no '##' section found", err=True)
+
+    # Rule 1: H1 heading present as the first non-empty line
+    first_idx, first_line = non_empty_lines[0]
+    if not first_line.startswith("# "):
+        violations.append(f"L{first_idx}: missing top-level H1 heading (e.g. '# Project')")
+
+    # Rule 2: Optional blockquote immediately after H1
+    # If any other non-empty line exists before a blockquote (other than H1), or
+    # if a blockquote exists later, it's a violation?
+    # Spec: "Optional blockquote (> ...) immediately after H1"
+    # I'll check if any blockquote exists and if it's NOT the second non-empty line.
+    for i, (lno, ln) in enumerate(non_empty_lines):
+        if ln.strip().startswith("> "):
+            if i != 1:
+                violations.append(f"L{lno}: blockquote must immediately follow H1 heading")
+            break
+
+    # Rule 3: At least one ## Section heading
+    if not any(ln.startswith("## ") for _, ln in non_empty_lines):
+        violations.append("invalid: no '##' section found")
+
+    # Rule 4: All markdown links in - label lines have non-empty labels and URLs
+    link_re = re.compile(r"\[(.*?)\]\((.*?)\)")
+    for lno, ln in non_empty_lines:
+        if ln.strip().startswith("- "):
+            for label, url in link_re.findall(ln):
+                if not label.strip():
+                    violations.append(f"L{lno}: empty link label")
+                if not url.strip():
+                    violations.append(f"L{lno}: empty link URL")
+
+    # Rule 5: No duplicate anchor targets
+    anchor_re = re.compile(r'<(?:a|span)[^>]*(?:id|name)=["\'](.*?)["\']', re.IGNORECASE)
+    seen_anchors: dict[str, int] = {}
+    for lno, ln in non_empty_lines:
+        for anchor in anchor_re.findall(ln):
+            if anchor in seen_anchors:
+                violations.append(
+                    f"L{lno}: duplicate anchor '{anchor}' (previously seen on L{seen_anchors[anchor]})"
+                )
+            else:
+                seen_anchors[anchor] = lno
+
+    if violations:
+        for v in violations:
+            typer.echo(v, err=True)
         raise typer.Exit(code=1)
+
     typer.echo(f"valid: {target}")
 
 
