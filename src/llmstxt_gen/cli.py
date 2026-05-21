@@ -85,9 +85,11 @@ def generate(
         typer.echo("No source files found to parse.", err=True)
         raise typer.Exit(code=1)
 
-    summary_modules = prune_modules(modules, cfg.max_tokens_summary)
+    summary_modules = prune_modules(modules, cfg, cfg.max_tokens_summary, render_summary)
     summary = render_summary(summary_modules, cfg)
-    full = None if no_full else render_full(prune_modules(modules, cfg.max_tokens_full), cfg)
+    full = None if no_full else render_full(
+        prune_modules(modules, cfg, cfg.max_tokens_full, render_full), cfg
+    )
     mini = None if no_mini else render_mini(modules, cfg)
 
     if dry_run:

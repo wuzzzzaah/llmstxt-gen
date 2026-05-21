@@ -1,0 +1,3 @@
+[tool.llmstxt_gen]
+max_tokens_summary = 10
+max_tokens_full = 100

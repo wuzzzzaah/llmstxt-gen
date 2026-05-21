@@ -41,6 +41,7 @@ dependencies = [
     "tree-sitter-php>=0.24.1",
     "tree-sitter-scala>=0.26.0",
     "tree-sitter-kotlin>=1.1.0",
+    "tiktoken>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -51,7 +52,6 @@ dev = [
     "mypy>=1.10",
     "tiktoken>=0.7",
 ]
-tokens = ["tiktoken>=0.7"]
 
 [project.scripts]
 llmstxt-gen = "llmstxt_gen.cli:app"
