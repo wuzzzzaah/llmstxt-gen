@@ -19,6 +19,7 @@ from llmstxt_gen.parsers.base import (
     ParsedFunction,
     ParsedModule,
     ParsedParameter,
+    ParsedRoute,
 )
 from llmstxt_gen.walker import SourceFile
 
@@ -222,6 +223,101 @@ def _maybe_module_constant(stmt: Node, source: bytes, out: list[ParsedConstant])
     _maybe_class_var(stmt, source, out)
 
 
+_FASTAPI_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options", "trace"})
+
+
+def _extract_python_routes(node: Node, source: bytes) -> list[ParsedRoute]:
+    """Extract FastAPI and Flask routes from a decorated definition."""
+    if node.type != _DECORATED_DEFINITION:
+        return []
+
+    routes: list[ParsedRoute] = []
+    func_node = _child_by_field(node, "definition")
+    if not func_node or func_node.type != _FUNCTION_DEFINITION:
+        return []
+
+    handler_name = ""
+    name_node = _child_by_field(func_node, "name")
+    if name_node:
+        handler_name = _text(name_node, source)
+
+    docstring = _function_docstring(func_node, source)
+
+    for decorator in node.named_children:
+        if decorator.type != _DECORATOR:
+            continue
+
+        call = decorator.named_children[0] if decorator.named_children else None
+        if not call or call.type != "call":
+            continue
+
+        fn = _child_by_field(call, "function")
+        if not fn or fn.type != "attribute":
+            continue
+
+        # obj.attr (e.g. app.get or router.post)
+        attr_node = _child_by_field(fn, "attribute")
+        if not attr_node:
+            continue
+
+        method_name = _text(attr_node, source)
+        args = _child_by_field(call, "arguments")
+        if not args:
+            continue
+
+        # Extract path (usually first positional argument or 'path' kwarg)
+        path = ""
+        named_args = args.named_children
+        for i, arg in enumerate(named_args):
+            if i == 0 and arg.type == _STRING:
+                path = _extract_string_literal(arg, source)
+                break
+            if arg.type == "keyword_argument":
+                kw_name = _child_by_field(arg, "name")
+                if kw_name and _text(kw_name, source) == "path":
+                    kw_val = _child_by_field(arg, "value")
+                    if kw_val and kw_val.type == _STRING:
+                        path = _extract_string_literal(kw_val, source)
+                        break
+
+        if method_name in _FASTAPI_METHODS:
+            routes.append(
+                ParsedRoute(
+                    method=method_name.upper(),
+                    path=path,
+                    handler=handler_name,
+                    line=decorator.start_point[0] + 1,
+                    docstring=docstring,
+                )
+            )
+        elif method_name == "route":
+            # Flask style: @app.route("/path", methods=["GET", "POST"])
+            methods = ["GET"]  # Default Flask method
+            for arg in named_args:
+                if arg.type == "keyword_argument":
+                    kw_name = _child_by_field(arg, "name")
+                    if kw_name and _text(kw_name, source) == "methods":
+                        value = _child_by_field(arg, "value")
+                        if value and value.type in ("list", "tuple"):
+                            methods = []
+                            for item in value.named_children:
+                                if item.type == _STRING:
+                                    methods.append(_extract_string_literal(item, source).upper())
+
+            for m in methods:
+                routes.append(
+                    ParsedRoute(
+                        method=m,
+                        path=path,
+                        handler=handler_name,
+                        line=decorator.start_point[0] + 1,
+                        docstring=docstring,
+                    )
+                )
+
+    return routes
+
+
 def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
     """Recursively find os.environ[VAR], os.environ.get(VAR), os.getenv(VAR)."""
     if node.type == "subscript":
@@ -301,6 +397,7 @@ class PythonParser(BaseParser):
         for child in root.named_children:
             target = child
             if child.type == _DECORATED_DEFINITION:
+                module.routes.extend(_extract_python_routes(child, source))
                 inner = _child_by_field(child, "definition")
                 if inner is not None:
                     target = inner

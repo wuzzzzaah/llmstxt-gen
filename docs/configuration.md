@@ -27,6 +27,7 @@ Patterns use the same syntax as `.gitignore` (gitwildmatch).
 | `output_dir` | string | `"."` | Directory to write output files into, relative to the project root. |
 | `output_summary` | string | `"llms.txt"` | Filename for the compact summary file. |
 | `output_full` | string | `"llms-full.txt"` | Filename for the detailed reference. |
+| `output_mini` | string | `"llms-mini.txt"` | Filename for the signatures-only file. |
 
 ## Parsing behavior
 

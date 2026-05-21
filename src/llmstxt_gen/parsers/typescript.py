@@ -41,6 +41,10 @@ _FUNCTION_DECLARATION = "function_declaration"
 _CLASS_DECLARATION = "class_declaration"
 _INTERFACE_DECLARATION = "interface_declaration"
 _TYPE_ALIAS_DECLARATION = "type_alias_declaration"
+_ENUM_DECLARATION = "enum_declaration"
+_ENUM_BODY = "enum_body"
+_ENUM_ASSIGNMENT = "enum_assignment"
+_PROPERTY_IDENTIFIER = "property_identifier"
 _LEXICAL_DECLARATION = "lexical_declaration"
 _VARIABLE_DECLARATOR = "variable_declarator"
 _ARROW_FUNCTION = "arrow_function"
@@ -510,6 +514,34 @@ class TypeScriptParser(BaseParser):
                         name=name,
                         type_hint="interface" if kind == _INTERFACE_DECLARATION else "type",
                         value=_text(node, source),
+                    )
+                )
+        elif kind == _ENUM_DECLARATION:
+            name_node = node.child_by_field_name("name")
+            name = _text(name_node, source) if name_node else ""
+            if accept:
+                members: list[str] = []
+                body = node.child_by_field_name("body")
+                if body and body.type == _ENUM_BODY:
+                    for member in body.named_children:
+                        if member.type == _PROPERTY_IDENTIFIER:
+                            members.append(_text(member, source))
+                        elif member.type == _ENUM_ASSIGNMENT:
+                            # In enum_assignment, the first child is usually the property_identifier
+                            prop = member.child_by_field_name("name")
+                            if prop:
+                                members.append(_text(prop, source))
+                            else:
+                                # Fallback if name field is not present
+                                for sub in member.named_children:
+                                    if sub.type == _PROPERTY_IDENTIFIER:
+                                        members.append(_text(sub, source))
+                                        break
+                module.constants.append(
+                    ParsedConstant(
+                        name=name,
+                        type_hint="enum",
+                        value=" | ".join(members),
                     )
                 )
         elif kind == _LEXICAL_DECLARATION:

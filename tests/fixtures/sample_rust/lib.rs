@@ -28,12 +28,17 @@ pub enum MyEnum {
 }
 
 /// A public trait.
-pub trait MyTrait {
+pub trait MyTrait<T> where T: Clone {
     /// A trait method signature.
-    fn trait_method(&self) -> bool;
+    fn trait_method<U>(&self, arg: U) -> bool where U: std::fmt::Display;
+
+    /// A provided method.
+    fn provided_method(&self) -> i32 {
+        42
+    }
 }
 
-impl MyTrait for MyStruct {
+impl MyTrait<i32> for MyStruct {
     fn trait_method(&self) -> bool {
         true
     }

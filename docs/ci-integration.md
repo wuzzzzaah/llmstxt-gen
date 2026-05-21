@@ -28,7 +28,29 @@ Now `llms.txt` is regenerated on every commit. Any drift is caught locally.
 
 ## GitHub Actions
 
-Regenerate and commit `llms.txt` whenever `main` advances:
+### Reusable Workflow
+
+The recommended way to use `llmstxt-gen` in GitHub Actions is via our reusable workflow. This keeps your CI configuration clean and ensures you are always using a standard setup.
+
+Add this to `.github/workflows/llmstxt.yml`:
+
+```yaml
+name: Update llms.txt
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  llmstxt:
+    uses: wuzzzzaah/llmstxt-gen/.github/workflows/llmstxt.yml@main
+    permissions:
+      contents: write
+```
+
+### Manual Configuration
+
+If you need more control, you can define the steps manually:
 
 ```yaml
 name: Update llms.txt

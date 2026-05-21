@@ -6,13 +6,21 @@ import re
 
 from llmstxt_gen.config import LlmsTxtConfig
 from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule, ParsedRoute
-from llmstxt_gen.pruner import _first_sentence
 
 _ANCHOR_RE = re.compile(r"[^a-z0-9]+")
 
 
 def _slug(text: str) -> str:
     return _ANCHOR_RE.sub("-", text.lower()).strip("-")
+
+
+def _first_sentence(text: str) -> str:
+    if not text:
+        return ""
+    text = text.strip().splitlines()[0]
+    if "." in text:
+        text = text.split(".", 1)[0] + "."
+    return text
 
 
 def _format_params(fn: ParsedFunction) -> str:
@@ -46,20 +54,8 @@ def _path_key(path: str) -> str:
     return str(PurePosixPath(path).with_suffix(""))
 
 
-def render_summary(
-    modules: list[ParsedModule], config: LlmsTxtConfig, enforce_budget: bool = True
-) -> str:
+def render_summary(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render a spec-compliant ``llms.txt`` summary document."""
-    if enforce_budget:
-        from llmstxt_gen.pruner import prune_modules
-
-        # Pass enforce_budget=False to the renderer used during pruning
-        # to avoid infinite recursion.
-        def _render(m: list[ParsedModule], c: LlmsTxtConfig) -> str:
-            return render_summary(m, c, enforce_budget=False)
-
-        modules = prune_modules(modules, config, config.max_tokens_summary, _render)
-
     out: list[str] = [f"# {config.name or 'project'}", ""]
     if config.description:
         out.extend([f"> {config.description}", ""])
@@ -83,20 +79,33 @@ def _module_fallback(module: ParsedModule) -> str:
     return ""
 
 
-def render_full(
-    modules: list[ParsedModule], config: LlmsTxtConfig, enforce_budget: bool = True
-) -> str:
+def render_mini(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
+    """Render a signatures-only ``llms-mini.txt`` document."""
+    out: list[str] = [config.name or "project"]
+
+    for module in modules:
+        out.append(module.path)
+        out.append("")
+
+        if module.functions:
+            for fn in module.functions:
+                out.append(_format_signature(fn))
+            out.append("")
+
+        if module.classes:
+            for cls in module.classes:
+                out.append(cls.name)
+                out.append("")
+                if cls.methods:
+                    for method in cls.methods:
+                        out.append(_format_signature(method))
+                    out.append("")
+
+    return "\n".join(out).strip() + "\n"
+
+
+def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render the detailed ``llms-full.txt`` document."""
-    if enforce_budget:
-        from llmstxt_gen.pruner import prune_modules
-
-        # Pass enforce_budget=False to the renderer used during pruning
-        # to avoid infinite recursion.
-        def _render(m: list[ParsedModule], c: LlmsTxtConfig) -> str:
-            return render_full(m, c, enforce_budget=False)
-
-        modules = prune_modules(modules, config, config.max_tokens_full, _render)
-
     out: list[str] = [f"# {config.name or 'project'}", ""]
     if config.description:
         out.extend([f"> {config.description}", ""])

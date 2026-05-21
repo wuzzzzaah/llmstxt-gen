@@ -1,0 +1,6 @@
+- id: llmstxt-gen
+  name: Generate llms.txt
+  language: python
+  entry: llmstxt-gen generate
+  pass_filenames: false
+  always_run: true

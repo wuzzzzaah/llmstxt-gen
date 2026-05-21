@@ -1,6 +1,12 @@
 from llmstxt_gen.config import LlmsTxtConfig
-from llmstxt_gen.parsers.base import ParsedClass, ParsedFunction, ParsedModule, ParsedParameter
-from llmstxt_gen.renderer import render_full, render_summary
+from llmstxt_gen.parsers.base import (
+    ParsedClass,
+    ParsedFunction,
+    ParsedModule,
+    ParsedParameter,
+    ParsedRoute,
+)
+from llmstxt_gen.renderer import render_full, render_mini, render_summary
 
 
 def _modules() -> list[ParsedModule]:
@@ -122,6 +128,36 @@ def test_render_full_handles_zod_constants() -> None:
     assert len(next(line for line in out.splitlines() if "complexSchema" in line)) < 150
 
 
+def test_render_mini_emits_only_signatures() -> None:
+    modules = _modules()
+    # Add a route and a constant to ensure they are NOT in the mini output
+    modules[0].routes = [ParsedRoute(method="GET", path="/test")]
+    from llmstxt_gen.parsers.base import ParsedConstant
+
+    modules[0].constants = [ParsedConstant(name="VERSION", value="1.0")]
+
+    cfg = LlmsTxtConfig(name="demo")
+    out = render_mini(modules, cfg)
+
+    # Project name and path
+    assert out.startswith("demo\nsrc/calc.py")
+    # Function signature
+    assert "add(a: int, b: int = 0) -> int" in out
+    # Class name
+    assert "Calc" in out
+    # Method signature
+    assert "inc(self) -> None" in out
+
+    # No docstrings
+    assert "Adds numbers." not in out
+    assert "Return a + b." not in out
+    assert "A calculator." not in out
+
+    # No constants or routes
+    assert "VERSION" not in out
+    assert "GET /test" not in out
+
+
 def test_render_full_includes_env_vars_table() -> None:
     modules = [
         ParsedModule(
@@ -145,26 +181,3 @@ def test_render_full_includes_env_vars_table() -> None:
     assert "| `SUPABASE_URL` | `src/a.ts`, `src/b.py` |" in out
     assert "| `API_KEY` | `src/a.ts` |" in out
     assert "| `DB_URL` | `src/b.py` |" in out
-
-
-def test_renderer_enforces_budget() -> None:
-    # Use a very small budget to force pruning
-    cfg = LlmsTxtConfig(name="test", max_tokens_summary=5)
-    modules = _modules()
-    out = render_summary(modules, cfg)
-    # The project name header "# test" + "" + "## Modules" is already more than 5 tokens
-    # so we expect it to drop modules.
-    assert "## Modules" in out
-    assert "calc" not in out
-
-
-def test_render_full_enforces_budget() -> None:
-    # A slightly larger budget to allow the module to be kept but its docstring truncated
-    cfg = LlmsTxtConfig(name="test", max_tokens_full=100)
-    m = _modules()[0]
-    m.docstring = "First sentence. Second sentence."
-    # Make the module content large enough that Stage 1 is needed
-    m.functions[0].docstring = "Func first sentence. " + "Long " * 100
-    out = render_full([m], cfg)
-    assert "First sentence." in out
-    assert "Second sentence." not in out

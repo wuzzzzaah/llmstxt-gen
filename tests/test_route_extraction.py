@@ -3,13 +3,14 @@
 from pathlib import Path
 
 from llmstxt_gen.config import LlmsTxtConfig
+from llmstxt_gen.parsers.python import PythonParser
 from llmstxt_gen.parsers.typescript import TypeScriptParser
 from llmstxt_gen.renderer import render_full
 from llmstxt_gen.walker import SourceFile
 
 
-def _load(path: Path) -> SourceFile:
-    return SourceFile(path=path, language="typescript", content=path.read_text())
+def _load(path: Path, language: str = "typescript") -> SourceFile:
+    return SourceFile(path=path, language=language, content=path.read_text())
 
 
 # ---------------------------------------------------------------------------
@@ -115,3 +116,29 @@ def test_renderer_skips_routes_section_when_empty(sample_typescript_root: Path) 
     cfg = LlmsTxtConfig(name="demo")
     out = render_full([module], cfg)
     assert "### Routes" not in out
+
+
+# ---------------------------------------------------------------------------
+# Python route extraction (#41)
+# ---------------------------------------------------------------------------
+
+
+def test_python_extracts_fastapi_and_flask_routes(sample_python_root: Path) -> None:
+    parser = PythonParser()
+    module = parser.parse(_load(sample_python_root / "routes.py", "python"))
+    methods = {r.method for r in module.routes}
+    assert "GET" in methods
+    assert "POST" in methods
+    assert "PUT" in methods
+    assert "PATCH" in methods
+
+
+def test_python_renderer_emits_routes_section(sample_python_root: Path) -> None:
+    parser = PythonParser()
+    module = parser.parse(_load(sample_python_root / "routes.py", "python"))
+    cfg = LlmsTxtConfig(name="demo")
+    out = render_full([module], cfg)
+    assert "### Routes" in out
+    assert "`GET /users`" in out
+    assert "`POST /users/{id}`" in out
+    assert "`GET /legacy`" in out

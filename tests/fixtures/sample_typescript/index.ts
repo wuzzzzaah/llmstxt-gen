@@ -48,3 +48,12 @@ export type Pair = [number, number];
 export async function fetchItems(id: string, since?: string, limit?: number): Promise<string[]> {
     return [];
 }
+
+/**
+ * Status enum.
+ */
+export enum Status {
+    Active = "active",
+    Inactive = "inactive",
+    Pending = "pending"
+}
