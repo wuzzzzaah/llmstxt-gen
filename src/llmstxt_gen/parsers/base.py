@@ -85,7 +85,6 @@ class ParsedModule:
     routes: list[ParsedRoute] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
     env_vars: dict[str, list[str]] = field(default_factory=dict)
-    imports: list[str] = field(default_factory=list)
 
 
 def clean_docstring(raw: str) -> str:
