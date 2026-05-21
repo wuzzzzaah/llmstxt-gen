@@ -56,8 +56,10 @@ def test_rust_parser_basic():
     assert any(v.name == "VariantB" for v in my_enum.class_vars)
 
     # Trait
-    my_trait = next(c for c in module.classes if c.name == "MyTrait")
-    assert any(m.name == "trait_method" for m in my_trait.methods)
+    my_trait = next(c for c in module.classes if "MyTrait" in c.name)
+    assert "MyTrait<T> where T: Clone" in my_trait.name
+    assert any("trait_method<U> where U: std::fmt::Display" in m.name for m in my_trait.methods)
+    assert any(m.name == "provided_method" for m in my_trait.methods)
 
     # Trait impl
     # In my implementation, methods from 'impl MyTrait for MyStruct' are attached to MyStruct.

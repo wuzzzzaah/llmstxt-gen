@@ -267,29 +267,28 @@ class RustParser(BaseParser):
         name_node = node.child_by_field_name("name")
         name = _text(name_node, source) if name_node else ""
 
+        # Generics and where clause
+        generics = ""
+        type_params = node.child_by_field_name("type_parameters")
+        if type_params:
+            generics += _text(type_params, source)
+
+        where = ""
+        for c in node.children:
+            if c.type == _WHERE_CLAUSE:
+                where = " " + _text(c, source)
+                break
+
         methods: list[ParsedFunction] = []
         body = node.child_by_field_name("body")
         if body:
             for item in body.named_children:
-                if item.type == _FUNCTION_ITEM:
+                if item.type in (_FUNCTION_ITEM, _FUNCTION_SIGNATURE_ITEM):
                     # All trait methods are effectively public for users of the trait
                     methods.append(self._parse_function(item, source))
-                elif item.type == _FUNCTION_SIGNATURE_ITEM:
-                    # Just the signature
-                    name_n = item.child_by_field_name("name")
-                    ret_n = item.child_by_field_name("return_type")
-                    methods.append(
-                        ParsedFunction(
-                            name=_text(name_n, source) if name_n else "",
-                            parameters=_parse_parameters(item, source),
-                            return_type=_text(ret_n, source) if ret_n else "",
-                            docstring=_get_doc(item, source),
-                            line=item.start_point[0] + 1,
-                        )
-                    )
 
         return ParsedClass(
-            name=name,
+            name=name + generics + where,
             docstring=_get_doc(node, source),
             methods=methods,
             line=node.start_point[0] + 1,
