@@ -6,7 +6,7 @@ import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from llmstxt_gen.parsers.base import (
     ParsedClass,
@@ -29,7 +29,7 @@ def load_cache(path: Path) -> dict[str, Any]:
         return {}
     try:
         with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+            return cast(dict[str, Any], json.load(f))
     except (json.JSONDecodeError, OSError):
         return {}
 
