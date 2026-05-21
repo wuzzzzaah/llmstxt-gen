@@ -79,6 +79,31 @@ def _module_fallback(module: ParsedModule) -> str:
     return ""
 
 
+def render_mini(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
+    """Render a signatures-only ``llms-mini.txt`` document."""
+    out: list[str] = [config.name or "project"]
+
+    for module in modules:
+        out.append(module.path)
+        out.append("")
+
+        if module.functions:
+            for fn in module.functions:
+                out.append(_format_signature(fn))
+            out.append("")
+
+        if module.classes:
+            for cls in module.classes:
+                out.append(cls.name)
+                out.append("")
+                if cls.methods:
+                    for method in cls.methods:
+                        out.append(_format_signature(method))
+                    out.append("")
+
+    return "\n".join(out).strip() + "\n"
+
+
 def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     """Render the detailed ``llms-full.txt`` document."""
     out: list[str] = [f"# {config.name or 'project'}", ""]

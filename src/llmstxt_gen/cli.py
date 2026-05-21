@@ -12,7 +12,7 @@ from llmstxt_gen.config import LlmsTxtConfig, load_config
 from llmstxt_gen.parsers import parser_for
 from llmstxt_gen.parsers.base import ParsedModule
 from llmstxt_gen.pruner import estimate_total_tokens, prune_modules
-from llmstxt_gen.renderer import render_full, render_summary
+from llmstxt_gen.renderer import render_full, render_mini, render_summary
 from llmstxt_gen.walker import walk_repository
 from llmstxt_gen.writer import write_outputs
 
@@ -65,6 +65,10 @@ def generate(
         bool,
         typer.Option("--no-full", help="Skip generating llms-full.txt."),
     ] = False,
+    no_mini: Annotated[
+        bool,
+        typer.Option("--no-mini", help="Skip generating llms-mini.txt."),
+    ] = False,
     config: Annotated[
         Path | None,
         typer.Option("--config", help="Path to a specific pyproject.toml."),
@@ -83,6 +87,7 @@ def generate(
     summary_modules = prune_modules(modules, cfg.max_tokens_summary)
     summary = render_summary(summary_modules, cfg)
     full = None if no_full else render_full(prune_modules(modules, cfg.max_tokens_full), cfg)
+    mini = None if no_mini else render_mini(modules, cfg)
 
     if dry_run:
         typer.echo("===== llms.txt =====")
@@ -90,9 +95,12 @@ def generate(
         if full is not None:
             typer.echo("===== llms-full.txt =====")
             typer.echo(full)
+        if mini is not None:
+            typer.echo("===== llms-mini.txt =====")
+            typer.echo(mini)
         return
 
-    written = write_outputs(cfg, summary, full)
+    written = write_outputs(cfg, summary, full=full, mini=mini)
     for p in written:
         typer.echo(f"wrote {p}")
 
