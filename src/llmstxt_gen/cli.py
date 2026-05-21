@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 
@@ -17,10 +17,11 @@ from llmstxt_gen.cache import (
     serialize_module,
 )
 from llmstxt_gen.config import LlmsTxtConfig, load_config
+from llmstxt_gen.diff import GitError, get_changed_files
 from llmstxt_gen.parsers import parser_for
 from llmstxt_gen.parsers.base import ParsedModule
 from llmstxt_gen.pruner import estimate_total_tokens, prune_modules
-from llmstxt_gen.renderer import render_full, render_mini, render_summary
+from llmstxt_gen.renderer import render_diff, render_full, render_mini, render_summary
 from llmstxt_gen.walker import walk_repository
 from llmstxt_gen.writer import write_outputs
 
@@ -128,6 +129,14 @@ def generate(
         bool,
         typer.Option("--emit-frontmatter", help="Include YAML front-matter in llms-full.txt."),
     ] = False,
+    diff: Annotated[
+        Optional[str],
+        typer.Option(
+            help="Limit to files changed since git ref.",
+            flag_value="HEAD",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """Generate ``llms.txt`` (and ``llms-full.txt``) for a project."""
     cfg = load_config(path, config_path=config)
@@ -142,6 +151,29 @@ def generate(
         incremental=incremental,
         no_cache=no_cache,
     )
+
+    if diff is not None:
+        try:
+            changed_files = get_changed_files(diff, cfg.root)
+        except GitError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
+
+        modules = [m for m in modules if m.path in changed_files]
+        if not modules:
+            typer.echo(f"No changed files found for ref '{diff}'.", err=True)
+            raise typer.Exit(code=1)
+
+        diff_content = render_diff(modules, cfg)
+        if dry_run:
+            typer.echo("===== llms-diff.txt =====")
+            typer.echo(diff_content)
+            return
+        written = write_outputs(cfg, diff=diff_content)
+        for p in written:
+            typer.echo(f"wrote {p}")
+        return
+
     if not modules:
         typer.echo("No source files found to parse.", err=True)
         raise typer.Exit(code=1)
