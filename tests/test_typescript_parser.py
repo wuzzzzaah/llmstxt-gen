@@ -36,6 +36,15 @@ def test_typescript_parser_extracts_interface_and_type(sample_typescript_root: P
     assert "VERSION" in names
 
 
+def test_typescript_parser_extracts_enum(sample_typescript_root: Path) -> None:
+    parser = TypeScriptParser()
+    module = parser.parse(_load(sample_typescript_root / "index.ts"))
+    constants = {c.name: c for c in module.constants}
+    assert "Status" in constants
+    assert constants["Status"].type_hint == "enum"
+    assert constants["Status"].value == "Active | Inactive | Pending"
+
+
 def test_typescript_parser_marks_optional_parameters(sample_typescript_root: Path) -> None:
     parser = TypeScriptParser()
     module = parser.parse(_load(sample_typescript_root / "index.ts"))
