@@ -108,3 +108,20 @@ def test_python_parser_extracts_routes(sample_python_root: Path) -> None:
     )
     assert put_route.path == "/items/{item_id}"
     assert patch_route.path == "/items/{item_id}"
+
+
+def test_python_parser_extracts_imports() -> None:
+    content = """
+import os
+import sys as s
+from datetime import datetime
+from .models import User
+from .. import utils
+"""
+    parser = PythonParser()
+    module = parser.parse(SourceFile(path=Path("test.py"), language="python", content=content))
+    assert "os" in module.imports
+    assert "sys" in module.imports
+    assert "datetime" in module.imports
+    assert ".models" in module.imports
+    assert ".." in module.imports

@@ -181,3 +181,27 @@ def test_render_full_includes_env_vars_table() -> None:
     assert "| `SUPABASE_URL` | `src/a.ts`, `src/b.py` |" in out
     assert "| `API_KEY` | `src/a.ts` |" in out
     assert "| `DB_URL` | `src/b.py` |" in out
+
+
+def test_render_full_includes_frontmatter() -> None:
+    modules = [
+        ParsedModule(
+            name="users",
+            path="src/api/users.py",
+            language="python",
+            functions=[ParsedFunction(name="list_users")],
+            classes=[ParsedClass(name="UserService")],
+            routes=[ParsedRoute(method="GET", path="/users")],
+            imports=["fastapi", ".models"],
+        )
+    ]
+    cfg = LlmsTxtConfig(name="test", emit_frontmatter=True)
+    out = render_full(modules, cfg)
+
+    assert "## src/api/users.py" in out
+    assert "```yaml" in out
+    assert "language: python" in out
+    assert 'exports: ["UserService", "list_users"]' in out
+    assert 'imports: [".models", "fastapi"]' in out
+    assert 'routes: ["GET /users"]' in out
+    assert "```" in out
