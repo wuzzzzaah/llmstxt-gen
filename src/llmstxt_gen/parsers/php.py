@@ -48,6 +48,8 @@ _METHOD_DECLARATION = "method_declaration"
 _PROPERTY_DECLARATION = "property_declaration"
 _CONST_DECLARATION = "const_declaration"
 _ENUM_CASE = "enum_case"
+_NAMESPACE_USE_DECLARATION = "namespace_use_declaration"
+_NAMESPACE_USE_CLAUSE = "namespace_use_clause"
 
 
 def _text(node: Node | None, source: bytes) -> str:
@@ -235,6 +237,28 @@ class PHPParser(BaseParser):
 
     def _parse_nodes(self, node: Node, source: bytes, module: ParsedModule) -> None:
         for child in node.named_children:
+            if child.type == _NAMESPACE_USE_DECLARATION:
+                for clause in child.named_children:
+                    if clause.type == _NAMESPACE_USE_CLAUSE:
+                        name_node = clause.child_by_field_name("name")
+                        if name_node:
+                            module.imports.append(_text(name_node, source))
+                continue
+            if child.type == "require_expression" or child.type == "include_expression":
+                # php: (require_expression (require) (encapsed_string))
+                # string is the second named child or found by child_by_field if supported
+                for sub in child.named_children:
+                    if sub.type in ("encapsed_string", "string"):
+                        # Extract content if possible
+                        inner = ""
+                        for part in sub.named_children:
+                            if part.type in ("string_content", "string_fragment"):
+                                inner += _text(part, source)
+                        if not inner:
+                            inner = _text(sub, source).strip("'\"")
+                        module.imports.append(inner)
+                continue
+
             if child.type == _NAMESPACE_DEFINITION:
                 body = child.child_by_field_name("body")
                 if body:

@@ -256,3 +256,36 @@ def test_render_summary_smart_summaries_disabled() -> None:
     cfg = LlmsTxtConfig(smart_summaries=False)
     out = render_summary([module], cfg)
     assert ": Provides helper." in out
+
+
+def test_render_full_includes_dependency_graph() -> None:
+    modules = [
+        ParsedModule(
+            name="users",
+            path="src/api/users.py",
+            language="python",
+            imports=["models.user", "db.session", "os"],
+        ),
+        ParsedModule(
+            name="user",
+            path="src/models/user.py",
+            language="python",
+            imports=[],
+        ),
+        ParsedModule(
+            name="session",
+            path="src/db/session.py",
+            language="python",
+            imports=["sqlalchemy"],
+        ),
+    ]
+    cfg = LlmsTxtConfig(name="test")
+    out = render_full(modules, cfg)
+
+    assert "## Dependency Graph" in out
+    assert "`src/api/users.py` imports: `src/db/session.py`, `src/models/user.py`" in out
+    assert "`src/models/user.py` imports: (none — leaf node)" in out
+    assert "`src/db/session.py` imports: (none — leaf node)" in out
+    # Third party imports like 'os' and 'sqlalchemy' are filtered out
+    assert "os" not in out.split("## src/api/users.py")[0]
+    assert "sqlalchemy" not in out.split("## src/db/session.py")[0]

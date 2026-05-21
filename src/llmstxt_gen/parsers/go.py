@@ -57,6 +57,8 @@ _QUALIFIED_TYPE = "qualified_type"
 _POINTER_TYPE = "pointer_type"
 _ARRAY_TYPE = "array_type"
 _MAP_TYPE = "map_type"
+_IMPORT_DECLARATION = "import_declaration"
+_IMPORT_SPEC = "import_spec"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -193,6 +195,14 @@ class GoParser(BaseParser):
         methods_by_receiver: dict[str, list[ParsedFunction]] = {}
 
         for child in root.named_children:
+            if child.type == _IMPORT_DECLARATION:
+                for spec in child.named_children:
+                    if spec.type == _IMPORT_SPEC:
+                        path_node = spec.child_by_field_name("path")
+                        if path_node:
+                            module.imports.append(_text(path_node, source).strip('"'))
+                continue
+
             if child.type == _FUNCTION_DECLARATION:
                 fn = self._parse_function(child, source)
                 if self.include_private or _is_exported(fn.name):

@@ -176,6 +176,60 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
             out.append(f"| `{var}` | {files} |")
         out.append("")
 
+    # Dependency Graph
+    out.append("## Dependency Graph")
+    out.append("")
+    # Map from normalized name/path to module path
+    # e.g. 'models/user', 'models.user', 'src/models/user.py' all point to 'src/models/user.py'
+    path_map: dict[str, str] = {}
+    for m in modules:
+        p = m.path
+        path_map[p] = p
+        # Add various ways a module might be imported
+        key = _path_key(p)
+        parts = key.split("/")
+        for i in range(len(parts)):
+            sub_path = "/".join(parts[i:])
+            # Prefer longer matches if already present
+            if sub_path not in path_map:
+                path_map[sub_path] = p
+            dotted = sub_path.replace("/", ".")
+            if dotted not in path_map:
+                path_map[dotted] = p
+
+    for module in modules:
+        internal_imports = set()
+        for imp in module.imports:
+            # Try to resolve import to a module in the project
+            resolved = path_map.get(imp)
+            if not resolved and imp.startswith("."):
+                    from pathlib import PurePosixPath
+
+                    base = PurePosixPath(module.path).parent
+                    # Python relative imports like ..utils
+                    parts = imp.split(".")
+                    dots = 0
+                    for part in parts:
+                        if part == "":
+                            dots += 1
+                        else:
+                            break
+                    for _ in range(dots - 1):
+                        base = base.parent
+                    rel_path = "/".join(list(base.parts) + parts[dots:])
+                    resolved = path_map.get(rel_path)
+
+            if resolved and resolved != module.path:
+                internal_imports.add(resolved)
+
+        imports_str = (
+            ", ".join(f"`{p}`" for p in sorted(internal_imports))
+            if internal_imports
+            else "(none — leaf node)"
+        )
+        out.append(f"`{module.path}` imports: {imports_str}")
+    out.append("")
+
     for module in modules:
         anchor = _slug(module.path)
         out.append(f"## {module.path}")

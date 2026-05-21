@@ -157,6 +157,14 @@ class SwiftParser(BaseParser):
         classes_by_name: dict[str, ParsedClass] = {}
 
         for child in root.named_children:
+            if child.type == _IMPORT_DECLARATION:
+                # swift: (import_declaration (simple_identifier) (user_type))
+                # or just (simple_identifier) after 'import'
+                for named_child in child.named_children:
+                    if named_child.type != "import":
+                        module.imports.append(_text(named_child, source))
+                continue
+
             if child.type == _FUNCTION_DECLARATION:
                 if self.include_private or not _is_private(child, source):
                     module.functions.append(self._parse_function(child, source))

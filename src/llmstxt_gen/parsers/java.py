@@ -45,6 +45,7 @@ _ANNOTATION_TYPE_DECLARATION = "annotation_type_declaration"
 _METHOD_DECLARATION = "method_declaration"
 _FIELD_DECLARATION = "field_declaration"
 _ENUM_CONSTANT = "enum_constant"
+_IMPORT_DECLARATION = "import_declaration"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -219,6 +220,13 @@ class JavaParser(BaseParser):
         )
 
         for child in root.named_children:
+            if child.type == _IMPORT_DECLARATION:
+                # java: (import_declaration (scoped_identifier) ...)
+                # scoped_identifier is the first named child
+                if child.named_child_count > 0:
+                    module.imports.append(_text(child.named_children[0], source))
+                continue
+
             if child.type in (
                 _CLASS_DECLARATION,
                 _INTERFACE_DECLARATION,
