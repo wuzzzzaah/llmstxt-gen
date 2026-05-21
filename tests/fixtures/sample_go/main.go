@@ -42,6 +42,8 @@ func unexportedFunction() {}
 type MyInterface interface {
 	// DoSomething is an interface method.
 	DoSomething() string
+	// Embedded interface
+	fmt.Stringer
 }
 
 // EmbeddedStruct uses embedding.

@@ -324,11 +324,7 @@ class GoParser(BaseParser):
             elif type_node.type == _INTERFACE_TYPE:
                 # In tree-sitter-go, the methods/embedded types are named children of interface_type
                 for child in type_node.named_children:
-                    if child.type == _TYPE_ELEM:
-                        tid = _find_type_identifier(child)
-                        if tid:
-                            bases.append(_text(tid, source))
-                    elif child.type in (_METHOD_ELEM, _METHOD_SPEC):
+                    if child.type in (_METHOD_ELEM, _METHOD_SPEC):
                         # Extract as a function
                         fn_name_node = child.child_by_field_name("name")
                         params_node = child.child_by_field_name("parameters")
