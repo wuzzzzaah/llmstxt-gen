@@ -132,3 +132,20 @@ const other = process.env.OTHER_VAR;
         "SUPABASE_KEY": ["test.ts"],
         "OTHER_VAR": ["test.ts"],
     }
+
+
+def test_typescript_parser_extracts_imports() -> None:
+    content = """
+import { z } from 'zod';
+import * as fs from 'fs';
+import os from 'os';
+import './local';
+import 'pkg';
+"""
+    parser = TypeScriptParser()
+    module = parser.parse(SourceFile(path=Path("test.ts"), language="typescript", content=content))
+    assert "zod" in module.imports
+    assert "fs" in module.imports
+    assert "os" in module.imports
+    assert "./local" in module.imports
+    assert "pkg" in module.imports

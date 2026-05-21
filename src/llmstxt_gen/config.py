@@ -72,6 +72,7 @@ class LlmsTxtConfig:
     output_mini: str = "llms-mini.txt"
     include_private: bool = False
     smart_summaries: bool = True
+    emit_frontmatter: bool = False
     max_tokens_summary: int = 8000
     max_tokens_full: int = 32000
     languages: list[str] = field(default_factory=lambda: list(DEFAULT_LANGUAGES))
@@ -139,6 +140,8 @@ def load_config(root: Path, config_path: Path | None = None) -> LlmsTxtConfig:
         cfg.include_private = table["include_private"]
     if "smart_summaries" in table and isinstance(table["smart_summaries"], bool):
         cfg.smart_summaries = table["smart_summaries"]
+    if "emit_frontmatter" in table and isinstance(table["emit_frontmatter"], bool):
+        cfg.emit_frontmatter = table["emit_frontmatter"]
 
     for key in ("max_tokens_summary", "max_tokens_full"):
         if key in table and isinstance(table[key], int):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -179,6 +180,25 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
         anchor = _slug(module.path)
         out.append(f"## {module.path}")
         out.append(f'<a id="{anchor}"></a>')
+
+        if config.emit_frontmatter:
+            out.append("```yaml")
+            out.append(f"language: {module.language}")
+            exports = sorted(
+                {f.name for f in module.functions}
+                | {c.name for c in module.classes}
+                | {cn.name for cn in module.constants}
+            )
+            if exports:
+                out.append(f"exports: {json.dumps(exports)}")
+            if module.imports:
+                imports = sorted(set(module.imports))
+                out.append(f"imports: {json.dumps(imports)}")
+            if module.routes:
+                routes = sorted({f"{r.method} {r.path}" for r in module.routes})
+                out.append(f"routes: {json.dumps(routes)}")
+            out.append("```")
+
         out.append("")
         if module.docstring:
             out.extend([module.docstring, ""])

@@ -50,6 +50,7 @@ _VARIABLE_DECLARATOR = "variable_declarator"
 _ARROW_FUNCTION = "arrow_function"
 _FUNCTION_EXPRESSION = "function_expression"
 _ASYNC = "async"
+_IMPORT_STATEMENT = "import_statement"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -296,6 +297,21 @@ def _extract_express_routes(root: Node, source: bytes) -> list[ParsedRoute]:
     return routes
 
 
+def _extract_imports(node: Node, source: bytes, imports: list[str]) -> None:
+    """Extract top-level import statements."""
+    if node.type == _IMPORT_STATEMENT:
+        source_node = node.child_by_field_name("source")
+        if source_node:
+            # import ... from "module"
+            module_name = _text(source_node, source).strip("'\"")
+            imports.append(module_name)
+        else:
+            # import "module"
+            for child in node.named_children:
+                if child.type == "string":
+                    imports.append(_text(child, source).strip("'\""))
+
+
 def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
     """Recursively find process.env.VAR and process.env["VAR"] references."""
     if node.type == "member_expression":
@@ -467,6 +483,7 @@ class TypeScriptParser(BaseParser):
         )
 
         for child in root.named_children:
+            _extract_imports(child, source, module.imports)
             self._handle_top_level(child, source, module, exported=False)
 
         # Route extraction: Express and Next.js App Router
