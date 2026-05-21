@@ -1,7 +1,6 @@
 import logging
-from llmstxt_gen.config import LlmsTxtConfig
 
-logger = logging.getLogger(__name__)
+from llmstxt_gen.config import LlmsTxtConfig
 from llmstxt_gen.parsers.base import (
     ParsedClass,
     ParsedConstant,
@@ -9,7 +8,9 @@ from llmstxt_gen.parsers.base import (
     ParsedModule,
     ParsedParameter,
 )
-from llmstxt_gen.pruner import estimate_tokens, estimate_total_tokens, prune_modules
+from llmstxt_gen.pruner import estimate_tokens, prune_modules
+
+logger = logging.getLogger(__name__)
 
 
 def _render_mock(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:

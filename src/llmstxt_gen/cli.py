@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 from typing import Annotated
 
 import typer
-
-import logging
 
 from llmstxt_gen.config import LlmsTxtConfig, load_config
 from llmstxt_gen.parsers import parser_for
