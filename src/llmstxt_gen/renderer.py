@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from llmstxt_gen.config import LlmsTxtConfig
 from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule, ParsedRoute
@@ -65,13 +66,61 @@ def render_summary(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     for module in modules:
         anchor = _slug(module.path)
         key = _path_key(module.path)
-        desc = _first_sentence(module.docstring) or _first_sentence(_module_fallback(module))
+        desc = _first_sentence(module.docstring) or _first_sentence(_module_fallback(module, config))
         out.append(f"- [{key}]({config.output_full}#{anchor}): {desc}".rstrip())
     out.append("")
     return "\n".join(out)
 
 
-def _module_fallback(module: ParsedModule) -> str:
+def _module_fallback(module: ParsedModule, config: LlmsTxtConfig) -> str:
+    if not config.smart_summaries:
+        return _legacy_fallback(module)
+
+    # 1. Next.js Page component
+    if module.path.endswith(("page.tsx", "page.jsx", "page.ts", "page.js")):
+        for route in module.routes:
+            if route.handler == "default" and route.method == "GET":
+                return f"Page component at {route.path}."
+
+    # 2. HTTP Routes
+    if module.routes:
+        return "Defines HTTP routes."
+
+    # 3. Filename heuristics
+    stem = Path(module.path).stem.lower()
+    mapping = {
+        "models": "Data models.",
+        "utils": "Utility functions.",
+        "helpers": "Utility functions.",
+        "types": "Type definitions.",
+        "schemas": "Schema definitions.",
+        "routes": "HTTP route handlers.",
+        "constants": "Module constants.",
+        "config": "Configuration settings.",
+    }
+    if stem in mapping:
+        return mapping[stem]
+
+    # 4. Exported docstrings
+    for cls in module.classes:
+        if cls.docstring:
+            return cls.docstring
+    for fn in module.functions:
+        if fn.docstring:
+            return fn.docstring
+
+    # 5. __all__ heuristic
+    for const in module.constants:
+        if const.name == "__all__":
+            val = const.value.strip("[]() ").replace("'", "").replace('"', "")
+            items = [i.strip() for i in val.split(",") if i.strip()]
+            if items:
+                return f"Provides {', '.join(items)}."
+
+    return _legacy_fallback(module)
+
+
+def _legacy_fallback(module: ParsedModule) -> str:
     if module.classes:
         return f"Defines {', '.join(c.name for c in module.classes)}."
     if module.functions:
