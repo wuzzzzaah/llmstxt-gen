@@ -1,13 +1,11 @@
-import json
-from pathlib import Path
 from llmstxt_gen.cache import (
+    deserialize_module,
     get_sha256,
     load_cache,
     save_cache,
     serialize_module,
-    deserialize_module,
 )
-from llmstxt_gen.parsers.base import ParsedModule, ParsedFunction, ParsedParameter
+from llmstxt_gen.parsers.base import ParsedFunction, ParsedModule, ParsedParameter
 
 
 def test_get_sha256():
@@ -94,6 +92,7 @@ def test_complex_serialization_roundtrip():
 
 def test_cli_incremental(tmp_path, monkeypatch):
     from typer.testing import CliRunner
+
     from llmstxt_gen.cli import app
 
     (tmp_path / "pyproject.toml").write_text(

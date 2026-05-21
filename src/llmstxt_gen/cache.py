@@ -92,5 +92,6 @@ def deserialize_module(data: dict[str, Any]) -> ParsedModule:
         classes=classes,
         constants=constants,
         routes=routes,
+        imports=data.get("imports", []),
         env_vars=data.get("env_vars", {}),
     )
