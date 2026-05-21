@@ -41,6 +41,8 @@ _ASSIGNMENT = "assignment"
 _ASYNC = "async"
 _IMPORT_STATEMENT = "import_statement"
 _IMPORT_FROM_STATEMENT = "import_from_statement"
+_DOTTED_NAME = "dotted_name"
+_ALIASED_IMPORT = "aliased_import"
 
 
 def _text(node: Node, source: bytes) -> str:
@@ -324,6 +326,37 @@ def _extract_python_routes(node: Node, source: bytes) -> list[ParsedRoute]:
     return routes
 
 
+def _extract_imports(node: Node, source: bytes, imports: list[str]) -> None:
+    """Extract top-level imports and from-imports."""
+    if node.type == _IMPORT_STATEMENT:
+        # import os, sys
+        for child in node.named_children:
+            if child.type == _DOTTED_NAME:
+                imports.append(_text(child, source))
+            elif child.type == _ALIASED_IMPORT:
+                # import os as o
+                name_node = _child_by_field(child, "name")
+                if name_node:
+                    imports.append(_text(name_node, source))
+    elif node.type == _IMPORT_FROM_STATEMENT:
+        # from os import path
+        module_node = _child_by_field(node, "module_name")
+        relative = ""
+        # Handle relative imports: from . import foo
+        for child in node.children:
+            if child.type == ".":
+                relative += "."
+            elif child.type == _DOTTED_NAME:
+                break
+
+        base = relative
+        if module_node:
+            base += _text(module_node, source)
+
+        if base:
+            imports.append(base)
+
+
 def _extract_env_vars(node: Node, source: bytes, env_vars: dict[str, list[str]], path: str) -> None:
     """Recursively find os.environ[VAR], os.environ.get(VAR), os.getenv(VAR)."""
     if node.type == "subscript":
@@ -401,27 +434,7 @@ class PythonParser(BaseParser):
         )
 
         for child in root.named_children:
-            if child.type == _IMPORT_STATEMENT:
-                for named_child in child.named_children:
-                    if named_child.type == "dotted_name":
-                        module.imports.append(_text(named_child, source))
-                    elif named_child.type == "aliased_import":
-                        dotted = named_child.child_by_field_name("name")
-                        if dotted:
-                            module.imports.append(_text(dotted, source))
-                continue
-            if child.type == _IMPORT_FROM_STATEMENT:
-                module_node = child.child_by_field_name("module_name")
-                if module_node:
-                    module.imports.append(_text(module_node, source))
-                else:
-                    # check for relative_import
-                    for named_child in child.named_children:
-                        if named_child.type == "relative_import":
-                            module.imports.append(_text(named_child, source))
-                            break
-                continue
-
+            _extract_imports(child, source, module.imports)
             target = child
             if child.type == _DECORATED_DEFINITION:
                 module.routes.extend(_extract_python_routes(child, source))

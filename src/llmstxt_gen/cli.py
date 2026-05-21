@@ -74,11 +74,17 @@ def generate(
         Path | None,
         typer.Option("--config", help="Path to a specific pyproject.toml."),
     ] = None,
+    emit_frontmatter: Annotated[
+        bool,
+        typer.Option("--emit-frontmatter", help="Include YAML front-matter in llms-full.txt."),
+    ] = False,
 ) -> None:
     """Generate ``llms.txt`` (and ``llms-full.txt``) for a project."""
     cfg = load_config(path, config_path=config)
     if output_dir is not None:
         cfg.output_dir = str(output_dir)
+    if emit_frontmatter:
+        cfg.emit_frontmatter = True
 
     modules = _collect_modules(cfg, verbose=verbose)
     if not modules:
