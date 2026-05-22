@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -130,7 +130,7 @@ def generate(
         typer.Option("--emit-frontmatter", help="Include YAML front-matter in llms-full.txt."),
     ] = False,
     diff: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="Limit to files changed since git ref (e.g. 'HEAD', 'main').",
             show_default=False,

@@ -1,4 +1,3 @@
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -22,9 +21,8 @@ def test_get_changed_files_success():
 
 
 def test_get_changed_files_git_missing():
-    with patch("subprocess.run", side_effect=FileNotFoundError):
-        with pytest.raises(GitError, match="git command not found"):
-            get_changed_files("HEAD", Path("."))
+    with patch("subprocess.run", side_effect=FileNotFoundError), pytest.raises(GitError, match="git command not found"):
+        get_changed_files("HEAD", Path("."))
 
 
 def test_get_changed_files_invalid_ref():
@@ -32,9 +30,8 @@ def test_get_changed_files_invalid_ref():
     mock_result.returncode = 128
     mock_result.stderr = "fatal: ambiguous argument 'invalid-ref': unknown revision or path not in the working tree."
 
-    with patch("subprocess.run", return_value=mock_result):
-        with pytest.raises(GitError, match="git diff failed"):
-            get_changed_files("invalid-ref", Path("."))
+    with patch("subprocess.run", return_value=mock_result), pytest.raises(GitError, match="git diff failed"):
+        get_changed_files("invalid-ref", Path("."))
 
 
 def test_cli_diff_mode_no_changes(tmp_path):
