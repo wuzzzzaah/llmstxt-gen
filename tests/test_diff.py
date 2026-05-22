@@ -46,9 +46,7 @@ def test_cli_diff_mode_no_changes(tmp_path):
     mock_result.stdout = ""  # No changes
 
     with patch("subprocess.run", return_value=mock_result):
-        result = runner.invoke(app, ["generate", str(tmp_path), "--diff"])
-        print(f"OUTPUT: {result.output}")
-        print(f"EXIT CODE: {result.exit_code}")
+        result = runner.invoke(app, ["generate", str(tmp_path), "--diff", "HEAD"])
         # Typer might exit with 1 if we raise typer.Exit(code=1)
         assert result.exit_code == 1
         assert "No changed files found for ref 'HEAD'" in result.output

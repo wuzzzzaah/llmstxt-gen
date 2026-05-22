@@ -132,8 +132,7 @@ def generate(
     diff: Annotated[
         Optional[str],
         typer.Option(
-            help="Limit to files changed since git ref.",
-            flag_value="HEAD",
+            help="Limit to files changed since git ref (e.g. 'HEAD', 'main').",
             show_default=False,
         ),
     ] = None,
