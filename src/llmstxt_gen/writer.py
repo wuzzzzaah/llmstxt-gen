@@ -9,9 +9,10 @@ from llmstxt_gen.config import LlmsTxtConfig
 
 def write_outputs(
     config: LlmsTxtConfig,
-    summary: str,
+    summary: str | None = None,
     full: str | None = None,
     mini: str | None = None,
+    diff: str | None = None,
 ) -> list[Path]:
     """Write rendered documents into ``config.output_dir``.
 
@@ -21,9 +22,10 @@ def write_outputs(
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
-    summary_path = out_dir / config.output_summary
-    summary_path.write_text(summary, encoding="utf-8")
-    written.append(summary_path)
+    if summary is not None:
+        summary_path = out_dir / config.output_summary
+        summary_path.write_text(summary, encoding="utf-8")
+        written.append(summary_path)
 
     if full is not None:
         full_path = out_dir / config.output_full
@@ -34,5 +36,10 @@ def write_outputs(
         mini_path = out_dir / config.output_mini
         mini_path.write_text(mini, encoding="utf-8")
         written.append(mini_path)
+
+    if diff is not None:
+        diff_path = out_dir / config.output_diff
+        diff_path.write_text(diff, encoding="utf-8")
+        written.append(diff_path)
 
     return written

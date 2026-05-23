@@ -203,21 +203,21 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
             # Try to resolve import to a module in the project
             resolved = path_map.get(imp)
             if not resolved and imp.startswith("."):
-                    from pathlib import PurePosixPath
+                from pathlib import PurePosixPath
 
-                    base = PurePosixPath(module.path).parent
-                    # Python relative imports like ..utils
-                    parts = imp.split(".")
-                    dots = 0
-                    for part in parts:
-                        if part == "":
-                            dots += 1
-                        else:
-                            break
-                    for _ in range(dots - 1):
-                        base = base.parent
-                    rel_path = "/".join(list(base.parts) + parts[dots:])
-                    resolved = path_map.get(rel_path)
+                base = PurePosixPath(module.path).parent
+                # Python relative imports like ..utils
+                parts = imp.split(".")
+                dots = 0
+                for part in parts:
+                    if part == "":
+                        dots += 1
+                    else:
+                        break
+                for _ in range(dots - 1):
+                    base = base.parent
+                rel_path = "/".join(list(base.parts) + parts[dots:])
+                resolved = path_map.get(rel_path)
 
             if resolved and resolved != module.path:
                 internal_imports.add(resolved)
@@ -231,84 +231,102 @@ def render_full(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
     out.append("")
 
     for module in modules:
-        anchor = _slug(module.path)
-        out.append(f"## {module.path}")
-        out.append(f'<a id="{anchor}"></a>')
+        _render_module_details(module, out, config)
 
-        if config.emit_frontmatter:
-            out.append("```yaml")
-            out.append(f"language: {module.language}")
-            exports = sorted(
-                {f.name for f in module.functions}
-                | {c.name for c in module.classes}
-                | {cn.name for cn in module.constants}
-            )
-            if exports:
-                out.append(f"exports: {json.dumps(exports)}")
-            if module.imports:
-                imports = sorted(set(module.imports))
-                out.append(f"imports: {json.dumps(imports)}")
-            if module.routes:
-                routes = sorted({f"{r.method} {r.path}" for r in module.routes})
-                out.append(f"routes: {json.dumps(routes)}")
-            out.append("```")
+    return "\n".join(out)
 
-        out.append("")
-        if module.docstring:
-            out.extend([module.docstring, ""])
 
-        if module.functions:
-            out.append("### Functions")
-            out.append("")
-            for fn in module.functions:
-                out.append(f"#### `{_format_signature(fn)}`")
-                if fn.decorators:
-                    out.append(f"_Decorators: {', '.join('@' + d for d in fn.decorators)}_")
-                if fn.docstring:
-                    out.extend(["", fn.docstring])
-                out.append("")
+def _render_module_details(module: ParsedModule, out: list[str], config: LlmsTxtConfig) -> None:
+    anchor = _slug(module.path)
+    out.append(f"## {module.path}")
+    out.append(f'<a id="{anchor}"></a>')
 
-        if module.classes:
-            out.append("### Classes")
-            out.append("")
-            for cls in module.classes:
-                bases = f"({', '.join(cls.bases)})" if cls.bases else ""
-                out.append(f"#### `{cls.name}{bases}`")
-                if cls.docstring:
-                    out.extend(["", cls.docstring])
-                if cls.methods:
-                    out.append("")
-                    out.append("##### Methods")
-                    out.append("")
-                    for method in cls.methods:
-                        out.append(f"###### `{_format_signature(method)}`")
-                        if method.docstring:
-                            out.extend(["", method.docstring])
-                        out.append("")
-                out.append("")
-
-        if module.constants:
-            out.append("### Constants")
-            out.append("")
-            for const in module.constants:
-                line = f"- `{const.name}`"
-                if const.type_hint:
-                    line += f": `{const.type_hint}`"
-                elif const.value.startswith("z.") or ".partial(" in const.value:
-                    # Fallback for Zod schemas that weren't condensed into type_hint
-                    val = " ".join(const.value.splitlines()).strip()
-                    if len(val) > 120:
-                        val = val[:117] + "..."
-                    line += f": `{val}`"
-                out.append(line)
-            out.append("")
-
+    if config.emit_frontmatter:
+        out.append("```yaml")
+        out.append(f"language: {module.language}")
+        exports = sorted(
+            {f.name for f in module.functions}
+            | {c.name for c in module.classes}
+            | {cn.name for cn in module.constants}
+        )
+        if exports:
+            out.append(f"exports: {json.dumps(exports)}")
+        if module.imports:
+            imports = sorted(set(module.imports))
+            out.append(f"imports: {json.dumps(imports)}")
         if module.routes:
-            out.append("### Routes")
+            routes = sorted({f"{r.method} {r.path}" for r in module.routes})
+            out.append(f"routes: {json.dumps(routes)}")
+        out.append("```")
+
+    out.append("")
+    if module.docstring:
+        out.extend([module.docstring, ""])
+
+    if module.functions:
+        out.append("### Functions")
+        out.append("")
+        for fn in module.functions:
+            out.append(f"#### `{_format_signature(fn)}`")
+            if fn.decorators:
+                out.append(f"_Decorators: {', '.join('@' + d for d in fn.decorators)}_")
+            if fn.docstring:
+                out.extend(["", fn.docstring])
             out.append("")
-            for route in module.routes:
-                out.append(_format_route(route))
+
+    if module.classes:
+        out.append("### Classes")
+        out.append("")
+        for cls in module.classes:
+            bases = f"({', '.join(cls.bases)})" if cls.bases else ""
+            out.append(f"#### `{cls.name}{bases}`")
+            if cls.docstring:
+                out.extend(["", cls.docstring])
+            if cls.methods:
+                out.append("")
+                out.append("##### Methods")
+                out.append("")
+                for method in cls.methods:
+                    out.append(f"###### `{_format_signature(method)}`")
+                    if method.docstring:
+                        out.extend(["", method.docstring])
+                    out.append("")
             out.append("")
+
+    if module.constants:
+        out.append("### Constants")
+        out.append("")
+        for const in module.constants:
+            line = f"- `{const.name}`"
+            if const.type_hint:
+                line += f": `{const.type_hint}`"
+            elif const.value.startswith("z.") or ".partial(" in const.value:
+                # Fallback for Zod schemas that weren't condensed into type_hint
+                val = " ".join(const.value.splitlines()).strip()
+                if len(val) > 120:
+                    val = val[:117] + "..."
+                line += f": `{val}`"
+            out.append(line)
+        out.append("")
+
+    if module.routes:
+        out.append("### Routes")
+        out.append("")
+        for route in module.routes:
+            out.append(_format_route(route))
+        out.append("")
+
+
+def render_diff(modules: list[ParsedModule], config: LlmsTxtConfig) -> str:
+    """Render a partial view of changed modules."""
+    out: list[str] = [f"# {config.name or 'project'}", ""]
+    if config.description:
+        out.extend([f"> {config.description}", ""])
+
+    out.extend(["> Partial view — cross-module sections omitted. See llms-full.txt for complete context.", ""])
+
+    for module in modules:
+        _render_module_details(module, out, config)
 
     return "\n".join(out)
 
