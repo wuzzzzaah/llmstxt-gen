@@ -237,7 +237,7 @@ def generate(
                 typer.echo(f"[{timestamp}] Rebuilt in {elapsed:.1f}s ({len(changes)} files changed)")
         except KeyboardInterrupt:
             typer.echo("\nWatching stopped.")
-            raise typer.Exit(code=0)
+            raise typer.Exit(code=0) from None
 
 
 @app.command()
