@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -23,6 +25,7 @@ from llmstxt_gen.parsers.base import ParsedModule
 from llmstxt_gen.pruner import estimate_total_tokens, prune_modules
 from llmstxt_gen.renderer import render_diff, render_full, render_mini, render_summary
 from llmstxt_gen.walker import walk_repository
+from llmstxt_gen.watcher import iter_changes
 from llmstxt_gen.writer import write_outputs
 
 app = typer.Typer(
@@ -136,8 +139,16 @@ def generate(
             show_default=False,
         ),
     ] = None,
+    watch: Annotated[
+        bool,
+        typer.Option("--watch", help="Watch for file changes and regenerate automatically."),
+    ] = False,
 ) -> None:
     """Generate ``llms.txt`` (and ``llms-full.txt``) for a project."""
+    if watch and diff:
+        typer.echo("Error: --watch and --diff cannot be used together.", err=True)
+        raise typer.Exit(code=1)
+
     cfg = load_config(path, config_path=config)
     if output_dir is not None:
         cfg.output_dir = str(output_dir)
@@ -198,6 +209,35 @@ def generate(
     written = write_outputs(cfg, summary, full=full, mini=mini)
     for p in written:
         typer.echo(f"wrote {p}")
+
+    if watch:
+        typer.echo(f"Watching for changes in {cfg.root.resolve()}...")
+        try:
+            for changes in iter_changes(cfg.root):
+                start_time = time.time()
+                # Re-collect modules (cache handles skipping unchanged)
+                modules = _collect_modules(
+                    cfg,
+                    verbose=verbose,
+                    incremental=True,
+                    no_cache=no_cache,
+                )
+
+                summary_modules = prune_modules(modules, cfg, cfg.max_tokens_summary, render_summary)
+                summary = render_summary(summary_modules, cfg)
+                full = None if no_full else render_full(
+                    prune_modules(modules, cfg, cfg.max_tokens_full, render_full), cfg
+                )
+                mini = None if no_mini else render_mini(modules, cfg)
+
+                write_outputs(cfg, summary, full=full, mini=mini)
+
+                elapsed = time.time() - start_time
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                typer.echo(f"[{timestamp}] Rebuilt in {elapsed:.1f}s ({len(changes)} files changed)")
+        except KeyboardInterrupt:
+            typer.echo("\nWatching stopped.")
+            raise typer.Exit(code=0) from None
 
 
 @app.command()
